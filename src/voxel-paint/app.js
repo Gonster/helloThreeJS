@@ -10,21 +10,21 @@
 
     var base;
     var basePlaneGeometry, basePlaneMesh;
-    // var textureMappings = {
-    //     "default": THREE.ImageUtils.loadTexture( "atlas.png" )
-    // };
+    var textureMappings = {
+        "default": THREE.ImageUtils.loadTexture( "texture/atlas.png" )
+    };
     var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width  );
     var currentBoxMaterial = new THREE.MeshLambertMaterial( { 
         color: 0xfeb74c,
-        // ambient: 0x00ff80, 
-        // shading: THREE.FlatShading, 
-        // map: textureMappings["default"]
+        ambient: 0x00ff80, 
+        shading: THREE.FlatShading, 
+        map: textureMappings["default"]
     } );
     var currentHelperBoxMaterial = new THREE.MeshLambertMaterial( { 
         color: 0xfeb74c,
-        // ambient: 0x00ff80, 
-        // shading: THREE.FlatShading, 
-        // map: textureMappings["default"],
+        ambient: 0x00ff80, 
+        shading: THREE.FlatShading, 
+        map: textureMappings["default"],
         opacity: .5,
         transparent: true
     } );
