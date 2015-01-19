@@ -10,6 +10,11 @@
 
     var base;
     var basePlaneGeometry, basePlaneMesh;
+    var sidebarParams = {
+        'toolsType': 0,
+        'toolsRadius': 0,
+        'textures': 0
+    };
     // var textureMappings = {
     //     "default": THREE.ImageUtils.loadTexture( "texture/atlas.png" )
     // };
@@ -79,29 +84,34 @@
         var intersects = calculateIntersectResult(event);
         if( intersects.length > 0 ){
             var intersect = intersects[0];
-            //add a solid cube
             if( event.which === 1 ) {
-                var currentCube = new THREE.Mesh( defaultBoxGeometry, currentBoxMaterial );
-                setMeshPositionToFitTheGrid ( currentCube, intersect );
-                base.scene.add( currentCube );
-                allIntersectableObjects.push( currentCube );
-                cubeMeshes.push( currentCube );
-                onDocumentMouseMove(event);
-                return;
-            }
-            //remove cube
-            if(event.which === 2 ){
-                if( intersect.object !== basePlaneMesh ) {
-                    base.scene.remove( intersect.object );
-                    allIntersectableObjects.splice( allIntersectableObjects.indexOf( intersect.object ), 1 );
-                    cubeMeshes.splice( cubeMeshes.indexOf( intersect.object ), 1 );
+                var currentToolsType = (sidebarParams['toolsType'] + (event.shiftKey ? 1 : 0)) % 2;
+                //add a solid cube
+                if(currentToolsType === 0){
+                    var currentCube = new THREE.Mesh( defaultBoxGeometry, currentBoxMaterial );
+                    setMeshPositionToFitTheGrid ( currentCube, intersect );
+                    base.scene.add( currentCube );
+                    allIntersectableObjects.push( currentCube );
+                    cubeMeshes.push( currentCube );
                     onDocumentMouseMove(event);
+                    return;
+                }
+
+                //remove cube
+                if(currentToolsType === 1){
+                    if( intersect.object !== basePlaneMesh ) {
+                        base.scene.remove( intersect.object );
+                        allIntersectableObjects.splice( allIntersectableObjects.indexOf( intersect.object ), 1 );
+                        cubeMeshes.splice( cubeMeshes.indexOf( intersect.object ), 1 );
+                        onDocumentMouseMove(event);
+                    }
                 }
             }
         }
     }
 
-    function onDocumentKeyDown(event) {        
+    function onDocumentKeyDown(event) {   
+
     }
 
     function onDocumentKeyUp(event) {        
@@ -148,6 +158,8 @@
         document.addEventListener( 'keyup', onDocumentKeyUp, false );
     }
 
+
+
     function animate() {
         requestAnimationFrame( animate );
         base.renderer.render( base.scene, base.camera );
@@ -179,38 +191,43 @@
                 'name': 'tools',
                 'children':[
                     {
-                        'UIType': 'buttonGroup',
-                        'title': '类型',
-                        'name': 'toolsType',
-                        'buttons':[
+                        'UIType': 'Toolbar',
+                        'children':[
                             {
-                                'title': '方块',
-                                'id': 'cube',
-                                'checked': true
+                                'UIType': 'buttonGroup',
+                                'title': '类型',
+                                'name': 'toolsType',
+                                'buttons':[
+                                    {
+                                        'title': '方块',
+                                        'id': 'cube',
+                                        'checked': true
+                                    },
+                                    {
+                                        'title': '擦除',
+                                        'id': 'eraser'
+                                    }
+                                ]    
                             },
                             {
-                                'title': '擦除',
-                                'id': 'eraser'
-                            }
-                        ]    
-                    },
-                    {
-                        'UIType': 'buttonGroup',
-                        'title': '画笔半径',
-                        'name': 'toolsRadius',
-                        'buttons':[
-                            {
-                                'title': '1',
-                                'id': '1',
-                                'checked': true 
-                            },
-                            {
-                                'title': '2',
-                                'id': '2'
-                            },
-                            {
-                                'title': '4',
-                                'id': '4'
+                                'UIType': 'buttonGroup',
+                                'title': '画笔半径',
+                                'name': 'toolsRadius',
+                                'buttons':[
+                                    {
+                                        'title': '1',
+                                        'id': '1',
+                                        'checked': true 
+                                    },
+                                    {
+                                        'title': '2',
+                                        'id': '2'
+                                    },
+                                    {
+                                        'title': '4',
+                                        'id': '4'
+                                    }
+                                ]
                             }
                         ]
                     }
@@ -226,6 +243,7 @@
                         'UIType': 'buttonGroup',
                         'title': '材料',
                         'name': 'textures',
+                        'appendClass': 'btn-group-rect',
                         'buttons':[
                             {
                                 'title': '1',
@@ -243,10 +261,6 @@
                             {
                                 'title': '4',
                                 'id': '4'
-                            },
-                            {
-                                'title': '4',
-                                'id': '4'       
                             },
                             {
                                 'title': '5',
@@ -278,5 +292,29 @@
             }
         ]
     });
+    
+    //sidebar event management
+    var domArray = document.querySelectorAll('.btn');
+    if(domArray instanceof Array || domArray.length){
+        for (var i = domArray.length - 1; i >= 0; i--) {
+            domArray[i].addEventListener('click', onSidebarBtnClick, false);
+        }
+    }
+    else{
+        if(domArray instanceof object){
+            domArray.addEventListener('click', onSidebarBtnClick, false);
+        }
+    }
+
+    function onSidebarBtnClick(event){
+        if(this.nodeName.toLowerCase() === 'label'){
+            var radio = this.getElementsByTagName('input')[0];
+            sidebarParams[radio.name] = Number(radio.value);
+        }
+        else if(this.type === 'button'){
+            sidebarParams[this.id]();
+        }
+    }
+
 
 })( window, document, Base, THREE, Detector );
