@@ -10,21 +10,21 @@
 
     var base;
     var basePlaneGeometry, basePlaneMesh;
-    var textureMappings = {
-        "default": THREE.ImageUtils.loadTexture( "texture/atlas.png" )
-    };
+    // var textureMappings = {
+    //     "default": THREE.ImageUtils.loadTexture( "texture/atlas.png" )
+    // };
     var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width  );
     var currentBoxMaterial = new THREE.MeshLambertMaterial( { 
         color: 0xfeb74c,
         ambient: 0x00ff80, 
         shading: THREE.FlatShading, 
-        map: textureMappings["default"]
+        // map: textureMappings["default"]
     } );
     var currentHelperBoxMaterial = new THREE.MeshLambertMaterial( { 
         color: 0xfeb74c,
         ambient: 0x00ff80, 
         shading: THREE.FlatShading, 
-        map: textureMappings["default"],
+        // map: textureMappings["default"],
         opacity: .5,
         transparent: true
     } );
@@ -142,8 +142,8 @@
         base.renderer.setClearColor( 0xf0f0f0 );
 
         //listeners
-        document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-        document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+        base.renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+        base.renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
         document.addEventListener( 'keydown', onDocumentKeyDown, false );
         document.addEventListener( 'keyup', onDocumentKeyUp, false );
     }
@@ -156,33 +156,127 @@
     base = new Base( document.body );
     base.init( onWindowResize, subInit );
     animate();
-    var sidebar = new GoUI.Sidebar();
-    sidebar.createButtonGroups([
-        {
-            'name': 'tools',
-            'buttons':[
-                {
-                    'name': 'cube'
-                },
-                {
-                    'name': 'eraser'
-                }
-            ]    
-        },
-        {
-            'name': 'tools radius',
-            'buttons':[
-                {
-                    'name': '1'       
-                },
-                {
-                    'name': '2'
-                },
-                {
-                    'name': '4'
-                }
-            ]
-        }
-    ]);
+    // var sidebar = new GoUI.Sidebar();
+    GoUI.Utils.domCreationDirector({
+        'UIType': 'sidebar',
+        'id': 'sidebar',  
+        'children':[
+            {
+                'UIType': 'panel',
+                'title': '缩略图',
+                'name': 'navigator',
+                'children':[
+                    {
+                        'UIType': 'nav',
+                        'title': '缩略图',
+                        'id': 'map'
+                    }
+                ]
+            },
+            {
+                'UIType': 'panel',
+                'title': '画笔类型/半径',
+                'name': 'tools',
+                'children':[
+                    {
+                        'UIType': 'buttonGroup',
+                        'title': '类型',
+                        'name': 'toolsType',
+                        'buttons':[
+                            {
+                                'title': '方块',
+                                'id': 'cube',
+                                'checked': true
+                            },
+                            {
+                                'title': '擦除',
+                                'id': 'eraser'
+                            }
+                        ]    
+                    },
+                    {
+                        'UIType': 'buttonGroup',
+                        'title': '画笔半径',
+                        'name': 'toolsRadius',
+                        'buttons':[
+                            {
+                                'title': '1',
+                                'id': '1',
+                                'checked': true 
+                            },
+                            {
+                                'title': '2',
+                                'id': '2'
+                            },
+                            {
+                                'title': '4',
+                                'id': '4'
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                'UIType': 'panel',
+                'title': '材料',
+                'name': 'tools',
+                'overflow': 'hidden',
+                'children':[
+                    {
+                        'UIType': 'buttonGroup',
+                        'title': '材料',
+                        'name': 'textures',
+                        'buttons':[
+                            {
+                                'title': '1',
+                                'id': '1',  
+                                'checked': true  
+                            },
+                            {
+                                'title': '2',
+                                'id': '2'
+                            },
+                            {
+                                'title': '3',
+                                'id': '3'       
+                            },
+                            {
+                                'title': '4',
+                                'id': '4'
+                            },
+                            {
+                                'title': '4',
+                                'id': '4'       
+                            },
+                            {
+                                'title': '5',
+                                'id': '5'
+                            },
+                            {
+                                'title': '6',
+                                'id': '6'       
+                            },
+                            {
+                                'title': '7',
+                                'id': '7'
+                            },
+                            {
+                                'title': '8',
+                                'id': '8'       
+                            },
+                            {
+                                'title': '9',
+                                'id': '9'
+                            },
+                            {
+                                'title': '10',
+                                'id': '10'
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    });
 
 })( window, document, Base, THREE, Detector );
