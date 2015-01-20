@@ -15,9 +15,7 @@
         'toolsRadius': 0,
         'textures': 0
     };
-    // var textureMappings = {
-    //     "default": THREE.ImageUtils.loadTexture( "texture/atlas.png" )
-    // };
+
     var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width  );
     var currentBoxMaterial = new THREE.MeshLambertMaterial( { 
         color: 0xfeb74c,
@@ -40,6 +38,15 @@
     var ambientLight, directionalLight, soloPointLight;
     var mouseOnScreenVector;
     var raycaster;
+
+    var textureMappings = [
+        {
+            'type': 'color',
+            'data': ''
+        }
+        "0": currentBoxMaterial
+        "1": THREE.ImageUtils.loadTexture( "texture/atlas.png" )
+    ];
 
     function onWindowResize(event) {
 
@@ -84,8 +91,8 @@
         var intersects = calculateIntersectResult(event);
         if( intersects.length > 0 ){
             var intersect = intersects[0];
-            if( event.which === 1 ) {
-                var currentToolsType = (sidebarParams['toolsType'] + (event.shiftKey ? 1 : 0)) % 2;
+            if( event.button === 0 ) {
+                var currentToolsType = sidebarParams['toolsType'];
                 //add a solid cube
                 if(currentToolsType === 0){
                     var currentCube = new THREE.Mesh( defaultBoxGeometry, currentBoxMaterial );
@@ -114,7 +121,17 @@
 
     }
 
-    function onDocumentKeyUp(event) {        
+    function onDocumentKeyUp(event) {      
+        switch(event.keyCode){
+            case 16:
+                if(sidebarParams['toolsType'] === 0){
+                    document.getElementById('eraser').parentElement.click();
+                }
+                else if(sidebarParams['toolsType'] === 1){
+                    document.getElementById('cube').parentElement.click();
+                }
+                break;
+        }
     }
 
     function subInit() {
@@ -195,7 +212,7 @@
                         'children':[
                             {
                                 'UIType': 'buttonGroup',
-                                'title': '类型',
+                                'title': '类型(shift)',
                                 'name': 'toolsType',
                                 'buttons':[
                                     {
@@ -310,11 +327,14 @@
         if(this.nodeName.toLowerCase() === 'label'){
             var radio = this.getElementsByTagName('input')[0];
             sidebarParams[radio.name] = Number(radio.value);
+            // console.log(sidebarParams);
         }
         else if(this.type === 'button'){
             sidebarParams[this.id]();
         }
     }
+
+    //load other textures
 
 
 })( window, document, Base, THREE, Detector );
