@@ -10,27 +10,43 @@
 
     var base;
     var basePlaneGeometry, basePlaneMesh;
+
+    var defaultTexturesButtonWidth = 60;
+
+    var defaultMaterial = new THREE.MeshLambertMaterial( { color: 0x86b74c } );
+
+    var helperCubeMaterialDiff={        
+        opacity: .5,
+        transparent: true
+    };
+
+    var materials = [
+        {
+            'name': 'default',
+            'type': 'color',
+            'abstract': '#86b74c',
+            'data': defaultMaterial,
+            'helperData': insertAIntoB(helperCubeMaterialDiff, defaultMaterial)
+        }
+    ];
+
+    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width  );
+    var geometries = [
+        {
+            'name': 'default',
+            'type': '1',
+            'data': defaultBoxGeometry
+        }
+    ];
+
     var sidebarParams = {
         'toolsType': 0,
         'toolsRadius': 0,
         'textures': 0
     };
 
-    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width  );
-    var currentBoxMaterial = new THREE.MeshLambertMaterial( { 
-        color: 0xfeb74c,
-        ambient: 0x00ff80, 
-        shading: THREE.FlatShading, 
-        // map: textureMappings["default"]
-    } );
-    var currentHelperBoxMaterial = new THREE.MeshLambertMaterial( { 
-        color: 0xfeb74c,
-        ambient: 0x00ff80, 
-        shading: THREE.FlatShading, 
-        // map: textureMappings["default"],
-        opacity: .5,
-        transparent: true
-    } );
+    var currentBoxMaterial = defaultMaterial;
+    var currentHelperBoxMaterial = materials[0].helperData;
     var helperCube, currentCube;
     var gridHelper;
     var allIntersectableObjects = [];
@@ -39,14 +55,13 @@
     var mouseOnScreenVector;
     var raycaster;
 
-    var textureMappings = [
-        {
-            'type': 'color',
-            'data': ''
+    function insertAIntoB(a, b){
+        var c = b.clone();
+        for(var i in a){
+            c[i] = a[i];
         }
-        "0": currentBoxMaterial
-        "1": THREE.ImageUtils.loadTexture( "texture/atlas.png" )
-    ];
+        return c;
+    }
 
     function onWindowResize(event) {
 
@@ -148,7 +163,7 @@
         allIntersectableObjects.push( basePlaneMesh );
 
         //light
-        ambientLight = new THREE.AmbientLight( 0x606060 );
+        ambientLight = new THREE.AmbientLight( 0x505050 );
         base.scene.add( ambientLight );
         directionalLight = new THREE.DirectionalLight( 0xffffff );
         directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
@@ -192,6 +207,7 @@
         'children':[
             {
                 'UIType': 'panel',
+                'id': 'panel0',
                 'title': '缩略图',
                 'name': 'navigator',
                 'children':[
@@ -206,13 +222,16 @@
                 'UIType': 'panel',
                 'title': '画笔类型/半径',
                 'name': 'tools',
+                'id': 'panel1',
                 'children':[
                     {
                         'UIType': 'Toolbar',
+                        'id': 'toolbar0',
                         'children':[
                             {
                                 'UIType': 'buttonGroup',
                                 'title': '类型(shift)',
+                                'id': 'buttonGroup0',
                                 'name': 'toolsType',
                                 'buttons':[
                                     {
@@ -229,20 +248,21 @@
                             {
                                 'UIType': 'buttonGroup',
                                 'title': '画笔半径',
+                                'id': 'buttonGroup1',
                                 'name': 'toolsRadius',
                                 'buttons':[
                                     {
                                         'title': '1',
-                                        'id': '1',
+                                        'id': 'radius0',
                                         'checked': true 
                                     },
                                     {
                                         'title': '2',
-                                        'id': '2'
+                                        'id': 'radius1'
                                     },
                                     {
                                         'title': '4',
-                                        'id': '4'
+                                        'id': 'radius2'
                                     }
                                 ]
                             }
@@ -253,55 +273,25 @@
             {
                 'UIType': 'panel',
                 'title': '材料',
-                'name': 'tools',
+                'name': 'tools',                
+                'id': 'panel2',
                 'overflow': 'hidden',
                 'children':[
                     {
                         'UIType': 'buttonGroup',
                         'title': '材料',
+                        'id': 'buttonGroup2',
                         'name': 'textures',
                         'appendClass': 'btn-group-rect',
                         'buttons':[
                             {
-                                'title': '1',
-                                'id': '1',  
+                                'title': '',
+                                'id': 'texture0',
+                                'bgType': materials[0].type,
+                                'bgTypeData': materials[0].abstract,
+                                'width': defaultTexturesButtonWidth,
+                                'height': defaultTexturesButtonWidth,
                                 'checked': true  
-                            },
-                            {
-                                'title': '2',
-                                'id': '2'
-                            },
-                            {
-                                'title': '3',
-                                'id': '3'       
-                            },
-                            {
-                                'title': '4',
-                                'id': '4'
-                            },
-                            {
-                                'title': '5',
-                                'id': '5'
-                            },
-                            {
-                                'title': '6',
-                                'id': '6'       
-                            },
-                            {
-                                'title': '7',
-                                'id': '7'
-                            },
-                            {
-                                'title': '8',
-                                'id': '8'       
-                            },
-                            {
-                                'title': '9',
-                                'id': '9'
-                            },
-                            {
-                                'title': '10',
-                                'id': '10'
                             }
                         ]
                     }
@@ -328,6 +318,11 @@
             var radio = this.getElementsByTagName('input')[0];
             sidebarParams[radio.name] = Number(radio.value);
             // console.log(sidebarParams);
+            if(radio.name === 'textures'){
+                currentBoxMaterial = materials[sidebarParams[radio.name]].data;
+                currentHelperBoxMaterial = insertAIntoB(helperCubeMaterialDiff, currentBoxMaterial);
+                helperCube.material = currentHelperBoxMaterial;
+            }
         }
         else if(this.type === 'button'){
             sidebarParams[this.id]();
@@ -335,6 +330,57 @@
     }
 
     //load other textures
+    var basicColors = [
+        "#66ccff",
+        "#ff6600",
+        "#cc3333",
+        "#ffcc33",
+        "#33cc99",
+        "#3399cc",
+        "#b1eb00",
+        "#53bbf4",
+        "#ff85cb",
+        "#ff432e",        
+        "#ffac00"
+    ];
 
+    for (var i = 0, l = basicColors.length ; i < l; i++) {
+        var m ={
+            'name': basicColors[i],
+            'type': 'color',
+            'id': 'texture' + (i+1),
+            'abstract': basicColors[i],
+            'data': new THREE.MeshLambertMaterial( { color: basicColors[i] } )
+        }
+        materials.push(m);
+
+        GoUI.map['buttonGroup2'].addButton({
+            'title': '',
+            'id': m.id,
+            'bgType': m.type,
+            'bgTypeData': m.abstract,
+            'width': defaultTexturesButtonWidth,
+            'height': defaultTexturesButtonWidth
+        }).addEventListener('click', onSidebarBtnClick, false);
+    };
+    {
+        var m ={
+            'name': 'dirtTile',
+            'type': 'image',
+            'id': 'texture' +materials.length,
+            'abstract': 'texture/atlas.png',
+            'data': new THREE.MeshLambertMaterial( { map: THREE.ImageUtils.loadTexture('texture/atlas.png') } )
+        }
+        materials.push(m);
+
+        GoUI.map['buttonGroup2'].addButton({
+            'title': '',
+            'id': m.id,
+            'bgType': m.type,
+            'bgTypeData': m.abstract,
+            'width': defaultTexturesButtonWidth,
+            'height': defaultTexturesButtonWidth
+        }).addEventListener('click', onSidebarBtnClick, false);
+    }
 
 })( window, document, Base, THREE, Detector );

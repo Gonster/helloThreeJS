@@ -26,6 +26,14 @@
 	border-radius: 0;
 }
 
+.btn-group-rect .btn-tool:active,
+.btn-group-rect .btn-tool.active
+ {
+	border-radius: 0;
+	border-width: 3px; 
+	box-shadow: rgba(0, 0, 0, 0.6) 0px 3px 5px 0px inset;
+}
+
 .btn-group .btn:first-child {
   margin-left: -1px;
 }
