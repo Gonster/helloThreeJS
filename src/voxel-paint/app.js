@@ -11,7 +11,7 @@
     var base;
     var basePlaneGeometry, basePlaneMesh;
 
-    var defaultTexturesButtonWidth = 60;
+    var defaultTexturesButtonWidth = 57;
 
     var defaultMaterial = new THREE.MeshLambertMaterial( { color: 0x86b74c } );
 
@@ -52,7 +52,7 @@
     var allIntersectableObjects = [];
     var cubeMeshes = [];
     var ambientLight, directionalLight, soloPointLight;
-    var mouseOnScreenVector;
+    var mouseOnScreenVector, mouseState = [0,0,0];
     var raycaster;
 
     function insertAIntoB(a, b){
@@ -90,45 +90,89 @@
             .addScalar( DEFAULT_BOX.width / 2.0 );
     }
 
-    function onDocumentMouseMove(event) {
-        event.preventDefault();
-        var intersects = calculateIntersectResult(event);
+    function updateHelperCube(intersects) {
         if( intersects.length > 0 ){
             var intersect = intersects[0];
             setMeshPositionToFitTheGrid( helperCube, intersect );
         }
+    }
 
+    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving){
+        var intersects = intersectResult || calculateIntersectResult(event);
+        if( intersects.length > 0 ){
+            var intersect = intersects[0];
+            var currentToolsType = sidebarParams['toolsType'];
+            var sameVoxelFlag = false;
+            if(intersect.object === cubeMeshes[cubeMeshes.length-1]) sameVoxelFlag=true;
+            //add a solid cube
+            if(currentToolsType === 0){
+                if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
+                var currentCube = new THREE.Mesh( defaultBoxGeometry, currentBoxMaterial );
+                setMeshPositionToFitTheGrid ( currentCube, intersect );
+                base.scene.add( currentCube );
+                allIntersectableObjects.push( currentCube );
+                cubeMeshes.push( currentCube );
+                return;
+            }
+
+            //remove cube
+            if(currentToolsType === 1 && isEraseWhileMoving){
+                if( intersect.object !== basePlaneMesh ) {
+                    base.scene.remove( intersect.object );
+                    allIntersectableObjects.splice( allIntersectableObjects.indexOf( intersect.object ), 1 );
+                    cubeMeshes.splice( cubeMeshes.indexOf( intersect.object ), 1 );
+                    return;
+                }
+            }
+        }
+    }
+
+    function onDocumentMouseMove(event) {
+        event.preventDefault();
+        var intersects = calculateIntersectResult(event);
+        updateHelperCube(intersects);
+        ( mouseState[0] === 1 ) && drawVoxel(intersects, event.ctrlKey, event.ctrlKey);
         base.renderer.render( base.scene, base.camera );
+        
     }
 
     function onDocumentMouseDown(event) {        
         event.preventDefault();
-        var intersects = calculateIntersectResult(event);
-        if( intersects.length > 0 ){
-            var intersect = intersects[0];
-            if( event.button === 0 ) {
-                var currentToolsType = sidebarParams['toolsType'];
-                //add a solid cube
-                if(currentToolsType === 0){
-                    var currentCube = new THREE.Mesh( defaultBoxGeometry, currentBoxMaterial );
-                    setMeshPositionToFitTheGrid ( currentCube, intersect );
-                    base.scene.add( currentCube );
-                    allIntersectableObjects.push( currentCube );
-                    cubeMeshes.push( currentCube );
-                    onDocumentMouseMove(event);
-                    return;
-                }
+        switch(event.button){
+            case -1:
+                break;
+            case 0:
+                mouseState[0] = 1;
+                var intersects = calculateIntersectResult(event);
+                drawVoxel(intersects, event.ctrlKey, true);
+                updateHelperCube(intersects);
+                base.renderer.render( base.scene, base.camera );
+                break;
+            case 1:
+                mouseState[1] = 1;
+                break;
+            case 2:
+                mouseState[2] = 1;
+                break;
+        }
 
-                //remove cube
-                if(currentToolsType === 1){
-                    if( intersect.object !== basePlaneMesh ) {
-                        base.scene.remove( intersect.object );
-                        allIntersectableObjects.splice( allIntersectableObjects.indexOf( intersect.object ), 1 );
-                        cubeMeshes.splice( cubeMeshes.indexOf( intersect.object ), 1 );
-                        onDocumentMouseMove(event);
-                    }
-                }
-            }
+
+        
+    }
+
+    function onDocumentMouseUp(event) {
+        switch(event.button){
+            case -1:
+                break;
+            case 0:
+                mouseState[0] = 0;
+                break;
+            case 1:
+                mouseState[1] = 0;
+                break;
+            case 2:
+                mouseState[2] = 0;
+                break;
         }
     }
 
@@ -186,6 +230,7 @@
         //listeners
         base.renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
         base.renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
+        base.renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
         document.addEventListener( 'keydown', onDocumentKeyDown, false );
         document.addEventListener( 'keyup', onDocumentKeyUp, false );
     }
@@ -230,7 +275,7 @@
                         'children':[
                             {
                                 'UIType': 'buttonGroup',
-                                'title': '类型(shift)',
+                                'title': '画笔类型(shift切换 按住ctrl方块堆叠或连续擦除)',
                                 'id': 'buttonGroup0',
                                 'name': 'toolsType',
                                 'buttons':[
