@@ -132,7 +132,7 @@
         var intersects = calculateIntersectResult(event);
         updateHelperCube(intersects);
         ( mouseState[0] === 1 ) && drawVoxel(intersects, event.ctrlKey, event.ctrlKey);
-        base.renderer.render( base.scene, base.camera );
+        // base.renderer.render( base.scene, base.camera );
         
     }
 
@@ -146,7 +146,7 @@
                 var intersects = calculateIntersectResult(event);
                 drawVoxel(intersects, event.ctrlKey, true);
                 updateHelperCube(intersects);
-                base.renderer.render( base.scene, base.camera );
+                // base.renderer.render( base.scene, base.camera );
                 break;
             case 1:
                 mouseState[1] = 1;
