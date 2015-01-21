@@ -51,7 +51,7 @@
     var gridHelper;
     var allIntersectableObjects = [];
     var cubeMeshes = [];
-    var ambientLight, directionalLight, soloPointLight;
+    var ambientLight, directionalLight, hemisphereLight, spotLight;
     var mouseOnScreenVector, mouseState = [0,0,0];
     var raycaster;
 
@@ -108,6 +108,8 @@
             if(currentToolsType === 0){
                 if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
                 var currentCube = new THREE.Mesh( defaultBoxGeometry, currentBoxMaterial );
+                currentCube.castShadow = true;
+                currentCube.receiveShadow = true;
                 setMeshPositionToFitTheGrid ( currentCube, intersect );
                 base.scene.add( currentCube );
                 allIntersectableObjects.push( currentCube );
@@ -207,11 +209,33 @@
         allIntersectableObjects.push( basePlaneMesh );
 
         //light
-        ambientLight = new THREE.AmbientLight( 0x505050 );
+        ambientLight = new THREE.AmbientLight( 0x202020 );
         base.scene.add( ambientLight );
-        directionalLight = new THREE.DirectionalLight( 0xffffff );
+        directionalLight = new THREE.DirectionalLight( 0xeeeeee, 0.2 );
         directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
         base.scene.add( directionalLight );
+        hemisphereLight = new THREE.HemisphereLight( 0xeeeeee, 0x303030, 0.95 );
+        base.scene.add( hemisphereLight );
+
+        spotLight = new THREE.SpotLight( 0xffffff, 0.15, 0, Math.PI / 2, 1 );
+        spotLight.position.set( 0, 1500, 1000 );
+        spotLight.target.position.set( 0, 0, 0 );
+
+        spotLight.castShadow = true;
+
+        spotLight.shadowCameraNear = 1200;
+        spotLight.shadowCameraFar = 2500;
+        spotLight.shadowCameraFov = 50;
+
+        //spotLight.shadowCameraVisible = true;
+
+        spotLight.shadowBias = 0.000001;
+        spotLight.shadowDarkness = 0.5;
+
+        spotLight.shadowMapWidth = 1024;
+        spotLight.shadowMapHeight = 1024;
+
+        base.scene.add( spotLight );
 
         //helper cube
         helperCube = new THREE.Mesh( defaultBoxGeometry, currentHelperBoxMaterial );
@@ -226,7 +250,8 @@
         mouseOnScreenVector = new THREE.Vector2();
 
         base.renderer.setClearColor( 0xf0f0f0 );
-
+        base.renderer.shadowMapEnabled = true;
+        base.renderer.shadowMapType = THREE.PCFShadowMap;
         //listeners
         base.renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
         base.renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
@@ -407,15 +432,25 @@
             'width': defaultTexturesButtonWidth,
             'height': defaultTexturesButtonWidth
         }).addEventListener('click', onSidebarBtnClick, false);
-    };
-    {
+    }
+
+    var texturePaths = [
+        "texture/grass.png",
+        "texture/sand.png"
+    ];
+
+
+    for (var i = 0, l = texturePaths.length ; i < l; i++) {
         var m ={
-            'name': 'dirtTile',
+            'name': texturePaths[i].replace('texture/','').replace('.png',''),
             'type': 'image',
             'id': 'texture' +materials.length,
-            'abstract': 'texture/atlas.png',
-            'data': new THREE.MeshLambertMaterial( { map: THREE.ImageUtils.loadTexture('texture/atlas.png') } )
+            'abstract': texturePaths[i],
+            'data': new THREE.MeshLambertMaterial( { map: THREE.ImageUtils.loadTexture(texturePaths[i]) } )
         }
+
+        // m.data.magFilter = THREE.NearestFilter;
+        // m.data.minFilter = THREE.LinearMipMapLinearFilter;
         materials.push(m);
 
         GoUI.map['buttonGroup2'].addButton({
