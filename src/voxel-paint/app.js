@@ -80,16 +80,16 @@
     }
 
     function onWindowResize(event) {
+        if( base.WINDOW_WIDTH !== window.innerWidth || base.WINDOW_HEIGHT !== window.innerHeight ){
+            base.WINDOW_WIDTH = window.innerWidth;
+            base.WINDOW_HEIGHT = window.innerHeight;
+            base.WINDOW_HEIGHT_HALF = base.WINDOW_HEIGHT / 2.0;
+            base.WINDOW_WIDTH_HALF = base.WINDOW_WIDTH / 2.0;
 
-        base.WINDOW_WIDTH = window.innerWidth;
-        base.WINDOW_HEIGHT = window.innerHeight;
-        base.WINDOW_HEIGHT_HALF = base.WINDOW_HEIGHT / 2.0;
-        base.WINDOW_WIDTH_HALF = base.WINDOW_WIDTH / 2.0;
-
-        base.camera.aspect = base.WINDOW_WIDTH / base.WINDOW_HEIGHT;
-        base.camera.updateProjectionMatrix();
-        base.renderer.setSize( base.WINDOW_WIDTH, base.WINDOW_HEIGHT );
-
+            base.camera.aspect = base.WINDOW_WIDTH / base.WINDOW_HEIGHT;
+            base.camera.updateProjectionMatrix();
+            base.renderer.setSize( base.WINDOW_WIDTH, base.WINDOW_HEIGHT );
+        }
     }
 
     function calculateIntersectResult(event) {
@@ -154,6 +154,14 @@
         
     }
 
+    // function onTouchMove( event ) {
+    //     event.preventDefault();
+    //     switch ( event.touches.length ) {
+    //         case 1:
+    //             break;
+    //     }
+    // }
+
     function onDocumentMouseDown(event) {        
         event.preventDefault();
         switch(event.button){
@@ -161,6 +169,7 @@
                 break;
             case 0:
                 mouseState[0] = 1;
+                onWindowResize();
                 var intersects = calculateIntersectResult(event);
                 drawVoxel(intersects, undefined, true);
                 updateHelperCube(intersects);
