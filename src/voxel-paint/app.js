@@ -8,6 +8,18 @@
         "height": 10000.0
     }
 
+    var LIGHT_PARAMS = {
+        "webgl": {
+            "ambientLightColor": 0x202020,
+            "directionalLightDensity": 0.2
+
+        },
+        "canvas": {
+            "ambientLightColor": 0x909090,
+            "directionalLightDensity": 0.9
+        }
+    }
+
     var base;
     var basePlaneGeometry, basePlaneMesh;
 
@@ -209,9 +221,9 @@
         allIntersectableObjects.push( basePlaneMesh );
 
         //light
-        ambientLight = new THREE.AmbientLight( 0x202020 );
+        ambientLight = new THREE.AmbientLight( LIGHT_PARAMS[base.renderType].ambientLightColor );
         base.scene.add( ambientLight );
-        directionalLight = new THREE.DirectionalLight( 0xeeeeee, 0.2 );
+        directionalLight = new THREE.DirectionalLight( 0xeeeeee, LIGHT_PARAMS[base.renderType].directionalLightDensity );
         directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
         base.scene.add( directionalLight );
         hemisphereLight = new THREE.HemisphereLight( 0xeeeeee, 0x303030, 0.95 );
