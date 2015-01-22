@@ -89,6 +89,7 @@
             base.camera.aspect = base.WINDOW_WIDTH / base.WINDOW_HEIGHT;
             base.camera.updateProjectionMatrix();
             base.renderer.setSize( base.WINDOW_WIDTH, base.WINDOW_HEIGHT );
+            document.body.height = base.WINDOW_HEIGHT;
         }
     }
 
