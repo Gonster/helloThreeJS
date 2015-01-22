@@ -1,3 +1,7 @@
+/**
+*@author Gonster  ( gonster.github.io )
+*/
+
 (function ( window, document, Base, THREE, Detector ) {
     //constants
     var DEFAULT_BOX = {
