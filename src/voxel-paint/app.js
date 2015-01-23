@@ -79,6 +79,14 @@
         return c;
     }
 
+    function calcEventPagePosition(event){
+        if ( event.pageX == null && event.clientX !=  null ) {  
+            var doc = document.documentElement, body = document.body;  
+            event.pageX = event.clientX + (doc && doc.scrollLeft || body && body.scrollLeft || 0) - (doc && doc.clientLeft  || body && body.clientLeft || 0);  
+            event.pageY = event.clientY + (doc && doc.scrollTop  ||  body && body.scrollTop  || 0) - (doc && doc.clientTop  || body && body.clientTop  || 0);  
+        } 
+    }
+
     function onWindowResize(event) {
         if( base.WINDOW_WIDTH !== window.innerWidth || base.WINDOW_HEIGHT !== window.innerHeight ){
             base.WINDOW_WIDTH = window.innerWidth;
@@ -94,7 +102,8 @@
     }
 
     function calculateIntersectResult(event) {
-        mouseOnScreenVector.set( ( event.clientX / base.WINDOW_WIDTH ) * 2 - 1, - ( event.clientY / base.WINDOW_HEIGHT ) * 2 + 1 );
+        calcEventPagePosition(event);
+        mouseOnScreenVector.set( ( event.pageX / base.WINDOW_WIDTH ) * 2 - 1, - ( event.pageY / base.WINDOW_HEIGHT ) * 2 + 1 );
         raycaster.setFromCamera( mouseOnScreenVector, base.camera );
         return raycaster.intersectObjects( allIntersectableObjects );
     }
@@ -170,7 +179,7 @@
                 break;
             case 0:
                 mouseState[0] = 1;
-                onWindowResize();
+                // onWindowResize();
                 var intersects = calculateIntersectResult(event);
                 drawVoxel(intersects, undefined, true);
                 updateHelperCube(intersects);
