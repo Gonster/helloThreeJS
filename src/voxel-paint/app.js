@@ -3,74 +3,8 @@
 */
 
 (function ( window, document, Base, THREE, Detector ) {
-    //constants
-    var DEFAULT_BOX = {
-        "width": 50.0
-    };
-    var DEFAULT_PLANE = {
-        "width": 10000.0,
-        "height": 10000.0
-    }
 
-    var LIGHT_PARAMS = {
-        "webgl": {
-            "ambientLightColor": 0x202020,
-            "directionalLightDensity": 0.2
-
-        },
-        "canvas": {
-            "ambientLightColor": 0x909090,
-            "directionalLightDensity": 0.9
-        }
-    }
-
-    var base;
-    var basePlaneGeometry, basePlaneMesh;
-
-    var defaultTexturesButtonWidth = 57;
-
-    var defaultMaterial = new THREE.MeshLambertMaterial( { color: 0x86b74c } );
-
-    var helperCubeMaterialDiff={        
-        opacity: .5,
-        transparent: true
-    };
-
-    var materials = [
-        {
-            'name': 'default',
-            'type': 'color',
-            'abstract': '#86b74c',
-            'data': defaultMaterial,
-            'helperData': insertAIntoB(helperCubeMaterialDiff, defaultMaterial)
-        }
-    ];
-
-    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width  );
-    var geometries = [
-        {
-            'name': 'default',
-            'type': '1',
-            'data': defaultBoxGeometry
-        }
-    ];
-
-    var sidebarParams = {
-        'toolsType': 0,
-        'toolsRadius': 0,
-        'textures': 0
-    };
-
-    var currentBoxMaterial = defaultMaterial;
-    var currentHelperBoxMaterial = materials[0].helperData;
-    var helperCube, currentCube;
-    var gridHelper;
-    var allIntersectableObjects = [];
-    var cubeMeshes = [];
-    var ambientLight, directionalLight, hemisphereLight, spotLight;
-    var mouseOnScreenVector, mouseState = [0,0,0];
-    var raycaster;
-
+    //utils
     function insertAIntoB(a, b){
         var c = b.clone();
         for(var i in a){
@@ -87,6 +21,216 @@
         } 
     }
 
+    //classes
+    var VoxelPaintStorageManager = function(){};
+    VoxelPaintStorageManager.prototype = {
+        storageKeys: {
+            'meshes': 'vp_meshs'
+        },
+        load: function (){
+            return  window.localStorage && window.localStorage.getItem(this.storageKeys.meshes);
+        },
+        save: function (){
+            if( ! window.localStorage ) return;
+            var save = '';
+            for (var i = 0, l = cubeMeshes.length; i < l; i++) {
+                save += cubeMeshes[i].geo.id.replace('geo','') + ',';
+                save += cubeMeshes[i].material.id.replace('texture','') + ',';
+                save += cubeMeshes[i].meshObject.position.x + ',';
+                save += cubeMeshes[i].meshObject.position.y + ',';
+                save += cubeMeshes[i].meshObject.position.z + ';';
+            }
+            window.localStorage.setItem(this.storageKeys.meshes, save);
+        }
+    };
+
+
+    var ActionRecorder = function () {
+        this.currentAction = {};
+        this.actionArray = [];
+    };
+
+
+    var Pen = function(){};
+
+    function calculateIntersectResult(event) {
+        calcEventPagePosition(event);
+        mouseOnScreenVector.set( ( event.pageX / base.WINDOW_WIDTH ) * 2 - 1, - ( event.pageY / base.WINDOW_HEIGHT ) * 2 + 1 );
+        raycaster.setFromCamera( mouseOnScreenVector, base.camera );
+        return raycaster.intersectObjects( allIntersectableObjects );
+    }
+
+    function setMeshPositionToFitTheGrid(mesh,intersect) {
+        if( ! intersect || ! mesh ) return;
+        mesh.position.copy( intersect.point ).add( intersect.face.normal );
+        mesh.position.divideScalar( DEFAULT_BOX.width )
+        .floor()
+        .multiplyScalar( DEFAULT_BOX.width )
+        .addScalar( DEFAULT_BOX.width / 2.0 );
+    }
+
+    function updateHelperCube(intersects) {
+        if( intersects.length > 0 ){
+            var intersect = intersects[0];
+            setMeshPositionToFitTheGrid( helperCube, intersect );
+        }
+    }
+
+    Pen.prototype = {
+        'calculateIntersectResult': calculateIntersectResult,
+        'setMeshPositionToFitTheGrid': setMeshPositionToFitTheGrid,
+        'updateHelperCube': updateHelperCube,
+        'draw': function (geoIndex, materialIndex, xyz, intersect){
+            var currentBoxGeometryParent = geometries[geoIndex];
+            var currentBoxMaterialParent = materials[materialIndex];
+            var currentBoxGeometry = currentBoxGeometryParent.data;
+            var currentBoxMaterial = currentBoxMaterialParent.data;
+            var currentCube = new THREE.Mesh( currentBoxGeometry, currentBoxMaterial );
+            currentCube.castShadow = true;
+            currentCube.receiveShadow = true;
+            intersect ? setMeshPositionToFitTheGrid( currentCube, intersect ) : currentCube.position.set(xyz[0], xyz[1], xyz[2]);
+            base.scene.add( currentCube );
+            allIntersectableObjects.push( currentCube );
+            cubeMeshes.push( { 'meshObject': currentCube,  'geo': currentBoxGeometryParent, 'material': currentBoxMaterialParent } );
+        },
+        'erase': function (intersectObject){
+            base.scene.remove( intersectObject );
+            var index = allIntersectableObjects.indexOf( intersectObject );
+            if(index < 0) return;
+            allIntersectableObjects.splice( index , 1 );
+            cubeMeshes.splice( index - 1, 1 );
+        },
+        'reverseOperationMap': {
+            'draw': 'erase',
+            'erase': 'draw'
+        }
+    }
+
+
+    //constants
+    var DEFAULT_BOX = {
+        'width': 50.0
+    };
+    var DEFAULT_PLANE = {
+        'width': 10000.0,
+        'height': 10000.0
+    }
+
+    var LIGHT_PARAMS = {
+        'webgl': {
+            'ambientLightColor': 0x202020,
+            'directionalLightDensity': 0.2
+
+        },
+        'canvas': {
+            'ambientLightColor': 0x909090,
+            'directionalLightDensity': 0.9
+        }
+    }
+
+    var DRAW_VOXEL_SAME_CUBE_DEFINITION = 3;
+
+    var base;
+    var basePlaneGeometry, basePlaneMesh;
+
+    var defaultTexturesButtonWidth = 57;
+
+    var defaultMaterial = new THREE.MeshLambertMaterial( { color: 0x86b74c } );
+
+    var helperBoxMaterialDiff={        
+        opacity: .5,
+        transparent: true
+    };
+
+    var materials = [
+        {
+            'name': 'default',
+            'type': 'color',
+            'abstract': '#86b74c',
+            'id': 'texture0',
+            'data': defaultMaterial,
+            'helperData': insertAIntoB(helperBoxMaterialDiff, defaultMaterial)
+        }
+    ];
+
+    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width  );
+    var geometries = [
+        {
+            'name': 'default',
+            'type': '1',
+            'id': 'geo0',
+            'data': defaultBoxGeometry
+        }
+    ];
+
+    var sidebarParams = {
+        'toolsType': 0,
+        'toolsRadius': 0,
+        'textures': 0
+    };
+
+    var currentBoxMaterialParentIndex = 0;
+    var currentBoxMaterialParent = materials[0];
+    var currentBoxMaterial = currentBoxMaterialParent.data;
+    var currentHelperBoxMaterial = currentBoxMaterialParent.helperData;
+
+    var currentBoxGeometryParentIndex = 0;
+    var currentBoxGeometryParent = geometries[0];
+    var currentBoxGeometry = currentBoxGeometryParent.data;
+
+    var helperCube, currentCube;
+    var gridHelper;
+    var allIntersectableObjects = [];
+    var cubeMeshes = [];
+    var ambientLight, directionalLight, hemisphereLight, spotLight;
+    var mouseOnScreenVector, mouseState = [0,0,0];
+    var raycaster;
+
+    var voxelPaintStorageManager = new VoxelPaintStorageManager();
+    // var actionRecorder =new ActionRecorder();
+    var pen = new Pen();
+
+
+
+
+
+    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving){
+        var intersects = intersectResult || calculateIntersectResult(event);
+        if( intersects.length > 0 ){
+            var intersect = intersects[0];
+            var currentToolsType = sidebarParams['toolsType'];
+            var sameVoxelFlag = false;
+            var aioLen = allIntersectableObjects.length;
+            if(aioLen && intersect.object !== basePlaneMesh ){
+                for(var i = aioLen - 1; i > 0 && i > aioLen - 1 - DRAW_VOXEL_SAME_CUBE_DEFINITION ; i--){
+                    if(intersect.object === allIntersectableObjects[i]){
+                        sameVoxelFlag=true;
+                        break;
+                    }
+                }
+            }
+            //add a solid cube
+            if(currentToolsType === 0){
+                if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
+                pen.draw(currentBoxGeometryParentIndex, currentBoxMaterialParentIndex, undefined, intersect);
+                return;
+            }
+
+            //remove cube
+            if(currentToolsType === 1 && isEraseWhileMoving){
+                if( intersect.object !== basePlaneMesh ) {
+                    pen.erase(intersect.object);
+                    return;
+                }
+            }
+        }
+    }
+
+    //listeners
+    function onWindowBeforeUnload(event) {
+        voxelPaintStorageManager.save();
+    }
+
     function onWindowResize(event) {
         if( base.WINDOW_WIDTH !== window.innerWidth || base.WINDOW_HEIGHT !== window.innerHeight ){
             base.WINDOW_WIDTH = window.innerWidth;
@@ -98,60 +242,6 @@
             base.camera.updateProjectionMatrix();
             base.renderer.setSize( base.WINDOW_WIDTH, base.WINDOW_HEIGHT );
             document.body.height = base.WINDOW_HEIGHT;
-        }
-    }
-
-    function calculateIntersectResult(event) {
-        calcEventPagePosition(event);
-        mouseOnScreenVector.set( ( event.pageX / base.WINDOW_WIDTH ) * 2 - 1, - ( event.pageY / base.WINDOW_HEIGHT ) * 2 + 1 );
-        raycaster.setFromCamera( mouseOnScreenVector, base.camera );
-        return raycaster.intersectObjects( allIntersectableObjects );
-    }
-
-    function setMeshPositionToFitTheGrid(mesh,intersect) {
-            mesh.position.copy( intersect.point ).add( intersect.face.normal );
-            mesh.position.divideScalar( DEFAULT_BOX.width )
-            .floor()
-            .multiplyScalar( DEFAULT_BOX.width )
-            .addScalar( DEFAULT_BOX.width / 2.0 );
-    }
-
-    function updateHelperCube(intersects) {
-        if( intersects.length > 0 ){
-            var intersect = intersects[0];
-            setMeshPositionToFitTheGrid( helperCube, intersect );
-        }
-    }
-
-    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving){
-        var intersects = intersectResult || calculateIntersectResult(event);
-        if( intersects.length > 0 ){
-            var intersect = intersects[0];
-            var currentToolsType = sidebarParams['toolsType'];
-            var sameVoxelFlag = false;
-            if(intersect.object === cubeMeshes[cubeMeshes.length-1]) sameVoxelFlag=true;
-            //add a solid cube
-            if(currentToolsType === 0){
-                if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
-                var currentCube = new THREE.Mesh( defaultBoxGeometry, currentBoxMaterial );
-                currentCube.castShadow = true;
-                currentCube.receiveShadow = true;
-                setMeshPositionToFitTheGrid ( currentCube, intersect );
-                base.scene.add( currentCube );
-                allIntersectableObjects.push( currentCube );
-                cubeMeshes.push( currentCube );
-                return;
-            }
-
-            //remove cube
-            if(currentToolsType === 1 && isEraseWhileMoving){
-                if( intersect.object !== basePlaneMesh ) {
-                    base.scene.remove( intersect.object );
-                    allIntersectableObjects.splice( allIntersectableObjects.indexOf( intersect.object ), 1 );
-                    cubeMeshes.splice( cubeMeshes.indexOf( intersect.object ), 1 );
-                    return;
-                }
-            }
         }
     }
 
@@ -192,9 +282,24 @@
                 mouseState[2] = 1;
                 break;
         }
+    }
 
-
-        
+    function onSidebarBtnClick(event){
+        if(this.nodeName.toLowerCase() === 'label'){
+            var radio = this.getElementsByTagName('input')[0];
+            sidebarParams[radio.name] = Number(radio.value);
+            // console.log(sidebarParams);
+            if(radio.name === 'textures'){
+                currentBoxMaterialParentIndex = sidebarParams[radio.name];
+                currentBoxMaterialParent = materials[currentBoxMaterialParentIndex];
+                currentBoxMaterial = currentBoxMaterialParent.data;
+                currentHelperBoxMaterial = currentBoxMaterialParent.helperData = materials[sidebarParams[radio.name]].helperData || insertAIntoB(helperBoxMaterialDiff, currentBoxMaterial);
+                helperCube.material = currentHelperBoxMaterial;
+            }
+        }
+        else if(this.type === 'button'){
+            sidebarParams[this.id]();
+        }
     }
 
     function onDocumentMouseUp(event) {
@@ -220,6 +325,7 @@
     function onDocumentKeyUp(event) {      
         switch(event.keyCode){
             case 16:
+                if(mouseState[0]) return;
                 if(sidebarParams['toolsType'] === 0){
                     document.getElementById('eraser').parentElement.click();
                 }
@@ -273,12 +379,12 @@
         base.scene.add( spotLight );
 
         //helper cube
-        helperCube = new THREE.Mesh( defaultBoxGeometry, currentHelperBoxMaterial );
+        helperCube = new THREE.Mesh( currentBoxGeometry, currentHelperBoxMaterial );
         helperCube.position.set( DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0 );
         base.scene.add( helperCube );
 
         //current cube
-        currentCube = new THREE.Mesh( defaultBoxGeometry, currentBoxMaterial );
+        currentCube = new THREE.Mesh( currentBoxGeometry, currentBoxMaterial );
 
         //intersection detector
         raycaster = new THREE.Raycaster();
@@ -288,6 +394,7 @@
         base.renderer.shadowMapEnabled = true;
         base.renderer.shadowMapType = THREE.PCFShadowMap;
         //listeners
+        window.addEventListener('beforeunload', onWindowBeforeUnload, false );
         base.renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
         base.renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
         base.renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
@@ -377,6 +484,57 @@
             },
             {
                 'UIType': 'panel',
+                'title': '其他功能',
+                'name': 'tools',
+                'id': 'panel3',
+                'children':[
+                    {
+                        'UIType': 'buttonGroup',
+                        'title': '画笔半径',
+                        'id': 'buttonGroup3',
+                        'name': 'toolsRadius',
+                        'buttons':[
+                            {
+                                'title': '隐藏辅助物体',
+                                'id': 'hideAux',
+                                'checked': true 
+                            },
+                            {
+                                'title': '截图',
+                                'id': 'capture'
+                            },
+                            {
+                                'title': '清空',
+                                'id': 'clearAll'
+                            }
+                        ]
+                    },
+                    {
+                        'UIType': 'Toolbar',
+                        'id': 'toolbar1',
+                        'children':[
+                            {
+                                'UIType': 'buttonGroup',
+                                'id': 'buttonGroup3',
+                                'name': 'toolsType',
+                                'buttons':[
+                                    {
+                                        'title': '撤销',
+                                        'id': 'undo',
+                                        'checked': true
+                                    },
+                                    {
+                                        'title': '重做',
+                                        'id': 'redo'
+                                    }
+                                ]    
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                'UIType': 'panel',
                 'title': '材料',
                 'name': 'tools',                
                 'id': 'panel2',
@@ -418,35 +576,19 @@
         }
     }
 
-    function onSidebarBtnClick(event){
-        if(this.nodeName.toLowerCase() === 'label'){
-            var radio = this.getElementsByTagName('input')[0];
-            sidebarParams[radio.name] = Number(radio.value);
-            // console.log(sidebarParams);
-            if(radio.name === 'textures'){
-                currentBoxMaterial = materials[sidebarParams[radio.name]].data;
-                currentHelperBoxMaterial = insertAIntoB(helperCubeMaterialDiff, currentBoxMaterial);
-                helperCube.material = currentHelperBoxMaterial;
-            }
-        }
-        else if(this.type === 'button'){
-            sidebarParams[this.id]();
-        }
-    }
-
     //load other textures
     var basicColors = [
-        "#66ccff",
-        "#ff6600",
-        "#cc3333",
-        "#ffcc33",
-        "#33cc99",
-        "#3399cc",
-        "#b1eb00",
-        "#53bbf4",
-        "#ff85cb",
-        "#ff432e",        
-        "#ffac00"
+        '#66ccff',
+        '#ff6600',
+        '#cc3333',
+        '#ffcc33',
+        '#33cc99',
+        '#3399cc',
+        '#b1eb00',
+        '#53bbf4',
+        '#ff85cb',
+        '#ff432e',        
+        '#ffac00'
     ];
 
     for (var i = 0, l = basicColors.length ; i < l; i++) {
@@ -470,8 +612,9 @@
     }
 
     var texturePaths = [
-        "texture/grass.png",
-        "texture/sand.png"
+        'texture/grass.png',
+        'texture/sand.png',
+        'texture/glass.png'
     ];
 
 
@@ -481,11 +624,11 @@
             'type': 'image',
             'id': 'texture' +materials.length,
             'abstract': texturePaths[i],
-            'data': new THREE.MeshLambertMaterial( { map: THREE.ImageUtils.loadTexture(texturePaths[i]) } )
+            'data': new THREE.MeshLambertMaterial( { map: THREE.ImageUtils.loadTexture(texturePaths[i]), transparent: true } )
         }
-
-        // m.data.magFilter = THREE.NearestFilter;
-        // m.data.minFilter = THREE.LinearMipMapLinearFilter;
+        if(m.data.name === 'glass') m.data.map.opacity = 0.3;
+        m.data.map.magFilter = THREE.NearestFilter;
+        m.data.map.minFilter = THREE.LinearMipMapLinearFilter;
         materials.push(m);
 
         GoUI.map['buttonGroup2'].addButton({
@@ -496,6 +639,32 @@
             'width': defaultTexturesButtonWidth,
             'height': defaultTexturesButtonWidth
         }).addEventListener('click', onSidebarBtnClick, false);
+    }
+
+    var loadIterator = 0;
+    {
+        var loadDataArray = []; 
+        var intervalCallback;
+        {
+            var load = voxelPaintStorageManager.load();
+            if(load) loadDataArray = load.split(';');
+        }
+        if(loadDataArray.length > 0){
+            var loader = function(){
+                if(loadIterator < loadDataArray.length){
+                    var currentData = loadDataArray[loadIterator].split(',');
+                    if( currentData.length > 2 ){
+                        pen.draw( currentData[0], currentData[1], [currentData[2], currentData[3], currentData[4]] );
+                    }
+                }
+                else{
+                    clearInterval(intervalCallback);
+                    return;
+                }
+                loadIterator++;
+            };
+            intervalCallback = setInterval( loader, 0 );
+        }
     }
 
 })( window, document, Base, THREE, Detector );
