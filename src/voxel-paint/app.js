@@ -183,6 +183,7 @@
     var base;
     var basePlaneGeometry, basePlaneMesh;
 
+    var autoSaveInterval = 60*1000;
     var defaultLoadType = VoxelPaintStorageManager.prototype.LOAD_TYPE.async;
     var defaultTexturesButtonWidth = 57;
 
@@ -443,6 +444,7 @@
         base.renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
         document.addEventListener( 'keydown', onDocumentKeyDown, false );
         document.addEventListener( 'keyup', onDocumentKeyUp, false );
+        setInterval(onWindowBeforeUnload, autoSaveInterval);
     }
 
 
