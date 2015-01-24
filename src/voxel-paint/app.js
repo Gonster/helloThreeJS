@@ -183,7 +183,8 @@
     var base;
     var basePlaneGeometry, basePlaneMesh;
 
-    var autoSaveInterval = 60*1000;
+    var autoSaveInterval = 30*1000;
+    var autoSaveIntervalHandler;
     var defaultLoadType = VoxelPaintStorageManager.prototype.LOAD_TYPE.async;
     var defaultTexturesButtonWidth = 57;
 
@@ -341,12 +342,27 @@
             var radio = this.getElementsByTagName('input')[0];
             sidebarParams[radio.name] = Number(radio.value);
             // console.log(sidebarParams);
-            if(radio.name === 'textures'){
-                currentBoxMaterialParentIndex = sidebarParams[radio.name];
-                currentBoxMaterialParent = materials[currentBoxMaterialParentIndex];
-                currentBoxMaterial = currentBoxMaterialParent.data;
-                currentHelperBoxMaterial = currentBoxMaterialParent.helperData = materials[sidebarParams[radio.name]].helperData || insertAIntoB(helperBoxMaterialDiff, currentBoxMaterial);
-                helperCube.material = currentHelperBoxMaterial;
+            switch(radio.name){
+                case 'textures':
+                    currentBoxMaterialParentIndex = sidebarParams[radio.name];
+                    currentBoxMaterialParent = materials[currentBoxMaterialParentIndex];
+                    currentBoxMaterial = currentBoxMaterialParent.data;
+                    currentHelperBoxMaterial = currentBoxMaterialParent.helperData = materials[sidebarParams[radio.name]].helperData || insertAIntoB(helperBoxMaterialDiff, currentBoxMaterial);
+                    helperCube.material = currentHelperBoxMaterial;
+                    break;
+                case 'sidebarResize' :
+                    var sidebar = GoUI.map['sidebar'].domElement;
+                    if(radio.value === '0'){
+                        $(sidebar).animate({top:'0',height:'100%'});
+                        // sidebar.style.top = '0';
+                        // sidebar.style.height = '100%';
+                    }
+                    else{
+                        $(sidebar).animate({top:'85%',height:'15%'});
+                        // sidebar.style.top = '85%';
+                        // sidebar.style.height = '15%';
+                    }
+                    break;
             }
         }
         else if(this.type === 'button'){
@@ -444,7 +460,7 @@
         base.renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
         document.addEventListener( 'keydown', onDocumentKeyDown, false );
         document.addEventListener( 'keyup', onDocumentKeyUp, false );
-        setInterval(onWindowBeforeUnload, autoSaveInterval);
+        autoSaveIntervalHandler = setInterval(onWindowBeforeUnload, autoSaveInterval);
     }
 
 
@@ -461,23 +477,39 @@
     GoUI.Utils.domCreationDirector({
         'UIType': 'sidebar',
         'id': 'sidebar',  
-        'children':[
-            {
-                'UIType': 'panel',
-                'id': 'panel0',
-                'title': '缩略图',
-                'name': 'navigator',
-                'children':[
+        'children':[     
+            {                    
+                'UIType': 'buttonGroup',
+                'id': 'sidebarResize',
+                'name': 'sidebarResize',
+                'buttons':[
                     {
-                        'UIType': 'nav',
-                        'title': '缩略图',
-                        'id': 'map'
+                        'title': ' + ',
+                        'id': 'normalSidebar',
+                        'checked': true
+                    },
+                    {
+                        'title': ' -',
+                        'id': 'minSidebar'
                     }
-                ]
+                ] 
             },
+            // {
+            //     'UIType': 'panel',
+            //     'id': 'panel0',
+            //     'title': '缩略图',
+            //     'name': 'navigator',
+            //     'children':[
+            //         {
+            //             'UIType': 'nav',
+            //             'title': '缩略图',
+            //             'id': 'map'
+            //         }
+            //     ]
+            // },
             {
                 'UIType': 'panel',
-                'title': '画笔类型/半径',
+                'title': '画笔',
                 'name': 'tools',
                 'id': 'panel1',
                 'children':[
@@ -502,27 +534,27 @@
                                     }
                                 ]    
                             },
-                            {
-                                'UIType': 'buttonGroup',
-                                'title': '画笔半径',
-                                'id': 'buttonGroup1',
-                                'name': 'toolsRadius',
-                                'buttons':[
-                                    {
-                                        'title': '1',
-                                        'id': 'radius0',
-                                        'checked': true 
-                                    },
-                                    {
-                                        'title': '2',
-                                        'id': 'radius1'
-                                    },
-                                    {
-                                        'title': '4',
-                                        'id': 'radius2'
-                                    }
-                                ]
-                            }
+                            // {
+                            //     'UIType': 'buttonGroup',
+                            //     'title': '画笔半径',
+                            //     'id': 'buttonGroup1',
+                            //     'name': 'toolsRadius',
+                            //     'buttons':[
+                            //         {
+                            //             'title': '1',
+                            //             'id': 'radius0',
+                            //             'checked': true 
+                            //         },
+                            //         {
+                            //             'title': '2',
+                            //             'id': 'radius1'
+                            //         },
+                            //         {
+                            //             'title': '4',
+                            //             'id': 'radius2'
+                            //         }
+                            //     ]
+                            // }
                         ]
                     }
                 ]
@@ -535,9 +567,9 @@
                 'children':[
                     {
                         'UIType': 'buttonGroup',
-                        'title': '画笔半径',
+                        'title': '',
                         'id': 'buttonGroup3',
-                        'name': 'toolsRadius',
+                        'name': 'aux',
                         'buttons':[
                             {
                                 'title': '隐藏辅助物体',
@@ -561,7 +593,7 @@
                             {
                                 'UIType': 'buttonGroup',
                                 'id': 'buttonGroup3',
-                                'name': 'toolsType',
+                                'name': 'actions',
                                 'buttons':[
                                     {
                                         'title': '撤销',
