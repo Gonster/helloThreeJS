@@ -23,14 +23,20 @@
 
     //classes
     var VoxelPaintStorageManager = function(){};
+
     VoxelPaintStorageManager.prototype = {
-        storageKeys: {
+        'LOAD_TYPE': {
+            'async': 0,
+            'sync': 1
+        },
+        'asyncLoadDefaultInterval': 0,
+        'storageKeys': {
             'meshes': 'vp_meshs'
         },
-        load: function (){
-            return  window.localStorage && window.localStorage.getItem(this.storageKeys.meshes);
+        'load': function (key){
+            return  window.localStorage && window.localStorage.getItem(key || this.storageKeys.meshes);
         },
-        save: function (){
+        'save': function (key){
             if( ! window.localStorage ) return;
             var save = '';
             for (var i = 0, l = cubeMeshes.length; i < l; i++) {
@@ -40,7 +46,47 @@
                 save += cubeMeshes[i].meshObject.position.y + ',';
                 save += cubeMeshes[i].meshObject.position.z + ';';
             }
-            window.localStorage.setItem(this.storageKeys.meshes, save);
+            window.localStorage.setItem(key || this.storageKeys.meshes, save);
+        },
+        'loadMeshes': function loadMeshes(key, loadType){
+            var loadIterator = 0;
+            {
+                var loadDataArray = []; 
+                var intervalCallback;
+                {
+                    var load = this.load(key);
+                    if(load) loadDataArray = load.split(';');
+                }
+                if(loadDataArray.length > 0){
+                    switch(loadType){
+                        case this.LOAD_TYPE.sync:
+                            for(var i = 0, l = loadDataArray.length; i < l; i++){
+                                var currentData = loadDataArray[i].split(',');
+                                if( currentData.length > 2 ){
+                                    pen.draw( currentData[0], currentData[1], [currentData[2], currentData[3], currentData[4]] );
+                                }
+                            }
+                            break;
+                        default:
+                        case this.LOAD_TYPE.async:
+                            var loader = function(){
+                                if(loadIterator < loadDataArray.length){
+                                    var currentData = loadDataArray[loadIterator].split(',');
+                                    if( currentData.length > 2 ){
+                                        pen.draw( currentData[0], currentData[1], [currentData[2], currentData[3], currentData[4]] );
+                                    }
+                                }
+                                else{
+                                    clearInterval(intervalCallback);
+                                    return;
+                                }
+                                loadIterator++;
+                            };
+                            intervalCallback = setInterval( loader, this.asyncLoadDefaultInterval );
+                            break;
+                    }
+                }
+            }
         }
     };
 
@@ -81,6 +127,8 @@
         'setMeshPositionToFitTheGrid': setMeshPositionToFitTheGrid,
         'updateHelperCube': updateHelperCube,
         'draw': function (geoIndex, materialIndex, xyz, intersect){
+            var geoIndex = geoIndex || 0;
+            var materialIndex = materialIndex || 0;
             var currentBoxGeometryParent = geometries[geoIndex];
             var currentBoxMaterialParent = materials[materialIndex];
             var currentBoxGeometry = currentBoxGeometryParent.data;
@@ -108,6 +156,8 @@
 
 
     //constants
+
+
     var DEFAULT_BOX = {
         'width': 50.0
     };
@@ -119,7 +169,7 @@
     var LIGHT_PARAMS = {
         'webgl': {
             'ambientLightColor': 0x202020,
-            'directionalLightDensity': 0.2
+            'directionalLightDensity': 0.3
 
         },
         'canvas': {
@@ -133,6 +183,7 @@
     var base;
     var basePlaneGeometry, basePlaneMesh;
 
+    var defaultLoadType = VoxelPaintStorageManager.prototype.LOAD_TYPE.async;
     var defaultTexturesButtonWidth = 57;
 
     var defaultMaterial = new THREE.MeshLambertMaterial( { color: 0x86b74c } );
@@ -352,31 +403,23 @@
         //light
         ambientLight = new THREE.AmbientLight( LIGHT_PARAMS[base.renderType].ambientLightColor );
         base.scene.add( ambientLight );
+
         directionalLight = new THREE.DirectionalLight( 0xeeeeee, LIGHT_PARAMS[base.renderType].directionalLightDensity );
-        directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
+        directionalLight.shadowCameraVisible = true;
+        directionalLight.position.set( 0, 6000, 5000 );
+        directionalLight.target.position.set( 0, 0, 0 );
+        directionalLight.castShadow = true;
+        directionalLight.shadowCameraNear = base.camera.near;
+        directionalLight.shadowCameraFar = base.camera.far;
+        directionalLight.shadowCameraFov = base.camera.fov;
+        directionalLight.shadowBias = 0.000001;
+        directionalLight.shadowDarkness = 0.5;
+        directionalLight.shadowMapWidth = 1024;
+        directionalLight.shadowMapHeight = 1024;
         base.scene.add( directionalLight );
+
         hemisphereLight = new THREE.HemisphereLight( 0xeeeeee, 0x303030, 0.95 );
         base.scene.add( hemisphereLight );
-
-        spotLight = new THREE.SpotLight( 0xffffff, 0.15, 0, Math.PI / 2, 1 );
-        spotLight.position.set( 0, 1500, 1000 );
-        spotLight.target.position.set( 0, 0, 0 );
-
-        spotLight.castShadow = true;
-
-        spotLight.shadowCameraNear = 1200;
-        spotLight.shadowCameraFar = 2500;
-        spotLight.shadowCameraFov = 50;
-
-        //spotLight.shadowCameraVisible = true;
-
-        spotLight.shadowBias = 0.000001;
-        spotLight.shadowDarkness = 0.5;
-
-        spotLight.shadowMapWidth = 1024;
-        spotLight.shadowMapHeight = 1024;
-
-        base.scene.add( spotLight );
 
         //helper cube
         helperCube = new THREE.Mesh( currentBoxGeometry, currentHelperBoxMaterial );
@@ -640,31 +683,7 @@
             'height': defaultTexturesButtonWidth
         }).addEventListener('click', onSidebarBtnClick, false);
     }
-
-    var loadIterator = 0;
-    {
-        var loadDataArray = []; 
-        var intervalCallback;
-        {
-            var load = voxelPaintStorageManager.load();
-            if(load) loadDataArray = load.split(';');
-        }
-        if(loadDataArray.length > 0){
-            var loader = function(){
-                if(loadIterator < loadDataArray.length){
-                    var currentData = loadDataArray[loadIterator].split(',');
-                    if( currentData.length > 2 ){
-                        pen.draw( currentData[0], currentData[1], [currentData[2], currentData[3], currentData[4]] );
-                    }
-                }
-                else{
-                    clearInterval(intervalCallback);
-                    return;
-                }
-                loadIterator++;
-            };
-            intervalCallback = setInterval( loader, 0 );
-        }
-    }
+    
+    voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType);
 
 })( window, document, Base, THREE, Detector );
