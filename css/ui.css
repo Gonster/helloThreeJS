@@ -16,6 +16,7 @@
 	box-shadow: -1px 0 5px rgba(0, 0, 0, .8);	
 	padding: 20px;
 	overflow-y: auto;
+	overflow-x: hidden;
 }
 
 .sidebar-right {
@@ -27,14 +28,24 @@
 }
 
 .sidebar #sidebarResize {
-	margin: -25px 0 5px 0;
-	text-align: center;
-	width: 100%;
+	position: fixed;
+	margin: 0;
+	width: 16px;
+}
+
+.sidebar-left #sidebarResize {
+	left: 1px;
+}
+
+.sidebar-right #sidebarResize {
+	right: 18px;
 }
 
 .sidebar #sidebarResize > .btn {
-	width:50%;
-	padding: 0px;
+	border-radius: 0px;
+	padding: 10px 3px 10px 3px;
+	display: block;
+	width: 100%;
 }
 
 .btn-group-rect label.btn {

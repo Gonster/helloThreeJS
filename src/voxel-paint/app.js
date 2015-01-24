@@ -358,7 +358,7 @@
                         // sidebar.style.height = '100%';
                     }
                     else{
-                        $(sidebar).animate({top:'85%',height:'15%'});
+                        $(sidebar).animate({top:'80%',height:'20%'});
                         // sidebar.style.top = '85%';
                         // sidebar.style.height = '15%';
                     }
