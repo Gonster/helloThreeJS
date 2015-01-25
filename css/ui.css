@@ -29,16 +29,16 @@
 
 .sidebar #sidebarResize {
 	position: fixed;
-	margin: 0;
+	margin: -18px 0 0 -17px;
 	width: 16px;
 }
 
 .sidebar-left #sidebarResize {
-	left: 1px;
+	/*left: 1px;*/
 }
 
 .sidebar-right #sidebarResize {
-	right: 18px;
+	/*right: 1px;*/
 }
 
 .sidebar #sidebarResize > .btn {

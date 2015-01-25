@@ -354,13 +354,9 @@
                     var sidebar = GoUI.map['sidebar'].domElement;
                     if(radio.value === '0'){
                         $(sidebar).animate({top:'0',height:'100%'});
-                        // sidebar.style.top = '0';
-                        // sidebar.style.height = '100%';
                     }
                     else{
-                        $(sidebar).animate({top:'80%',height:'20%'});
-                        // sidebar.style.top = '85%';
-                        // sidebar.style.height = '15%';
+                        $(sidebar).animate({top:'70%',height:'30%'});
                     }
                     break;
             }
