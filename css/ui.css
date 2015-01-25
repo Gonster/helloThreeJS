@@ -42,6 +42,15 @@
 	/*right: 1px;*/
 }
 
+@media screen and (max-width: 600px) {
+	.sidebar {
+		position: absolute;
+		height: 40%;
+		top: 60%;
+		overflow-x: auto;
+	}
+}
+
 .sidebar #sidebarResize > .btn {
 	border-radius: 0px;
 	padding: 10px 3px 10px 3px;
