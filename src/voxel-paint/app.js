@@ -126,8 +126,110 @@
 
 
     var ActionRecorder = function () {
-        this.currentAction = {};
+        this.currentActionIndex = -1;
         this.actionArray = [];
+    };
+
+    ActionRecorder.prototype = {
+        'undo': function() {
+            var currentAction;
+            if(this.currentActionIndex < 0) return;
+            currentAction = this.actionArray[this.currentActionIndex];
+            var reverseOperation = pen.reverseOperationMap[currentAction.type];
+            var meshes= currentAction.meshes;
+            if(meshes instanceof Array) {
+            }
+            else{
+                meshes = [meshes];
+            }
+            for (var i = 0, l = meshes.length; i < l; i++) {
+                var mesh = meshes[i];
+                if(mesh){
+                    switch(reverseOperation) {
+                        case 'draw':
+                            var mesh = pen.draw(
+                                mesh.geo, 
+                                mesh.material, 
+                                [mesh.meshObject.position.x, mesh.meshObject.position.y, mesh.meshObject.position.z],
+                                undefined,
+                                mesh.meshObject
+                            );
+                            break;
+                        case 'erase':
+                            pen.erase(mesh.meshObject);
+                            break;
+                    }
+                }
+            }
+            this.currentActionIndex--;
+        },
+        'redo': function() {
+            var currentAction;
+            if(this.currentActionIndex >= (this.actionArray.length - 1)) return;
+            currentAction = this.actionArray[this.currentActionIndex + 1];
+            var sameOperation = currentAction.type;
+            var meshes= currentAction.meshes;
+            if(meshes instanceof Array) {
+            }
+            else{
+                meshes = [meshes];
+            }
+            for (var i = 0, l = meshes.length; i < l; i++) {
+                var mesh = meshes[i];
+                if(mesh){
+                    switch(sameOperation) {
+                        case 'draw':
+                            pen.draw(
+                                mesh.geo, 
+                                mesh.material, 
+                                [mesh.meshObject.position.x, mesh.meshObject.position.y, mesh.meshObject.position.z],
+                                undefined,
+                                mesh.meshObject
+                            );
+                            break;
+                        case 'erase':
+                            pen.erase(mesh.meshObject);
+                            break;
+                    }
+                }
+            }
+            this.currentActionIndex++;
+        },
+        'addAction': function(actionType, mesh) {
+            //截断
+            this.actionArray.length = (this.currentActionIndex + 1 > -1) ? this.currentActionIndex + 1 : 0
+
+            var action = {
+                'type': actionType,
+                'meshes': mesh
+            };
+            this.actionArray.push(action);
+            this.currentActionIndex++;
+        },
+        'appendObjectToCurrentAction': function(mesh) {
+            var currentAction = this.actionArray[this.currentActionIndex];
+            if(currentAction.meshes === undefined) {
+                currentAction.meshes = mesh;
+            }
+            else{
+
+                if(currentAction.meshes instanceof Array) {
+                }
+                else{
+                    currentAction.meshes = [currentAction.meshes];
+                }
+
+                if(mesh instanceof Array) {
+                    for (var i = 0, l = mesh.length; i < l; i++) {
+                        currentAction.meshes.push(mesh[i]);
+                    };
+                }
+                else{
+                    currentAction.meshes.push(mesh);
+                }
+
+            }
+        }
     };
 
 
@@ -160,27 +262,45 @@
         'calculateIntersectResult': calculateIntersectResult,
         'setMeshPositionToFitTheGrid': setMeshPositionToFitTheGrid,
         'updateHelperCube': updateHelperCube,
-        'draw': function (geoIndex, materialIndex, xyz, intersect){
-            var geoIndex = geoIndex || 0;
-            var materialIndex = materialIndex || 0;
-            var currentBoxGeometryParent = geometries[geoIndex];
-            var currentBoxMaterialParent = materials[materialIndex];
+        'draw': function (geo, material, xyz, intersect, mesh){
+
+            var geoIndex,currentBoxGeometryParent,materialIndex,currentBoxMaterialParent;
+
+            if(geo === undefined || typeof geo === 'number'){
+                geoIndex = geo || 0;
+                currentBoxGeometryParent = geometries[geoIndex];
+            }
+            else{
+                currentBoxGeometryParent = geo;
+            }
+
+            if(material === undefined || typeof material === 'number'){
+                materialIndex = material || 0;
+                currentBoxMaterialParent = materials[materialIndex];
+            }
+            else{
+                currentBoxMaterialParent = material;
+            }
+
             var currentBoxGeometry = currentBoxGeometryParent.data;
             var currentBoxMaterial = currentBoxMaterialParent.data;
-            var currentCube = new THREE.Mesh( currentBoxGeometry, currentBoxMaterial );
+            var currentCube = mesh || new THREE.Mesh( currentBoxGeometry, currentBoxMaterial );
             currentCube.castShadow = true;
             currentCube.receiveShadow = true;
             intersect ? setMeshPositionToFitTheGrid( currentCube, intersect ) : currentCube.position.set(xyz[0], xyz[1], xyz[2]);
             base.scene.add( currentCube );
             allIntersectableObjects.push( currentCube );
             cubeMeshes.push( { 'meshObject': currentCube,  'geo': currentBoxGeometryParent, 'material': currentBoxMaterialParent } );
+            return cubeMeshes[cubeMeshes.length - 1];
         },
         'erase': function (intersectObject){
             base.scene.remove( intersectObject );
             var index = allIntersectableObjects.indexOf( intersectObject );
-            if(index < 0) return;
+            if(index < 0) return undefined;
             allIntersectableObjects.splice( index , 1 );
+            var mesh = cubeMeshes[index - 1];
             cubeMeshes.splice( index - 1, 1 );
+            return mesh;
         },
         'reverseOperationMap': {
             'draw': 'erase',
@@ -203,7 +323,7 @@
     var LIGHT_PARAMS = {
         'webgl': {
             'ambientLightColor': 0x202020,
-            'directionalLightDensity': 0.3
+            'directionalLightDensity': 0.4
 
         },
         'canvas': {
@@ -216,8 +336,9 @@
 
     var base;
     var basePlaneGeometry, basePlaneMesh;
+    var reloadFlag = 0;
 
-    var autoSaveInterval = 30*1000;
+    var autoSaveInterval = 120*1000;
     var autoSaveIntervalHandler;
     var defaultLoadType = VoxelPaintStorageManager.prototype.LOAD_TYPE.async;
     var defaultTexturesButtonWidth = 57;
@@ -274,14 +395,14 @@
     var raycaster;
 
     var voxelPaintStorageManager = new VoxelPaintStorageManager();
-    // var actionRecorder =new ActionRecorder();
+    var actionRecorder =new ActionRecorder();
     var pen = new Pen();
 
 
 
 
 
-    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving){
+    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving, isMouseMoving){
         var intersects = intersectResult || calculateIntersectResult(event);
         if( intersects.length > 0 ){
             var intersect = intersects[0];
@@ -299,14 +420,18 @@
             //add a solid cube
             if(currentToolsType === 0){
                 if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
-                pen.draw(currentBoxGeometryParentIndex, currentBoxMaterialParentIndex, undefined, intersect);
+                var mesh = pen.draw(currentBoxGeometryParentIndex, currentBoxMaterialParentIndex, undefined, intersect);
+                if(isMouseMoving) actionRecorder.appendObjectToCurrentAction(mesh);
+                else actionRecorder.addAction('draw', mesh);
                 return;
             }
 
             //remove cube
             if(currentToolsType === 1 && isEraseWhileMoving){
                 if( intersect.object !== basePlaneMesh ) {
-                    pen.erase(intersect.object);
+                    var mesh = pen.erase(intersect.object);
+                    if(isMouseMoving) actionRecorder.appendObjectToCurrentAction(mesh);
+                    else actionRecorder.addAction('erase', mesh);
                     return;
                 }
             }
@@ -315,8 +440,16 @@
 
     //listeners
     function onWindowBeforeUnload(event) {
+        if(reloadFlag === 0){
+            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
+            voxelPaintStorageManager.save();
+        }
+    }
+
+    function onWindowReload(event) {
         voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
         voxelPaintStorageManager.save();
+        reloadFlag = 1;
     }
 
     function onWindowResize(event) {
@@ -335,10 +468,24 @@
 
     function onDocumentMouseMove(event) {
         event.preventDefault();
-        var intersects = calculateIntersectResult(event);
-        updateHelperCube(intersects);
-        ( mouseState[0] === 1 ) && drawVoxel(intersects, event.ctrlKey, event.ctrlKey);
-        // base.renderer.render( base.scene, base.camera );
+        var intersects;
+        var currentToolsType;
+        
+        if( mouseState[0] === 1 ) {
+            intersects = calculateIntersectResult(event);
+            drawVoxel(intersects, event.ctrlKey, event.ctrlKey, true);
+        }
+        else{
+            currentToolsType = sidebarParams['toolsType'];
+            if(currentToolsType === 1) {
+                if(helperCube.visible) helperCube.visible = false;
+            }
+            else {
+                if(!helperCube.visible) helperCube.visible = true;
+                intersects = calculateIntersectResult(event);
+                updateHelperCube(intersects);
+            }
+        }
         
     }
 
@@ -359,9 +506,8 @@
                 mouseState[0] = 1;
                 // onWindowResize();
                 var intersects = calculateIntersectResult(event);
-                drawVoxel(intersects, undefined, true);
-                updateHelperCube(intersects);
-                // base.renderer.render( base.scene, base.camera );
+                drawVoxel(intersects, undefined, true, false);
+                if(currentToolsType === 0) updateHelperCube(intersects);
                 break;
             case 1:
                 mouseState[1] = 1;
@@ -421,16 +567,25 @@
 
     }
 
-    function onDocumentKeyUp(event) {      
+    function onDocumentKeyUp(event) {  
+        if(mouseState[0]) return;    
         switch(event.keyCode){
+            //shift
             case 16:
-                if(mouseState[0]) return;
                 if(sidebarParams['toolsType'] === 0){
                     document.getElementById('eraser').parentElement.click();
                 }
                 else if(sidebarParams['toolsType'] === 1){
                     document.getElementById('cube').parentElement.click();
                 }
+                break;
+            //z
+            case 90:
+                if(event.ctrlKey) actionRecorder.undo();
+                break;
+            //y
+            case 89:
+                if(event.ctrlKey) actionRecorder.redo();
                 break;
         }
     }
@@ -453,7 +608,7 @@
         base.scene.add( ambientLight );
 
         directionalLight = new THREE.DirectionalLight( 0xeeeeee, LIGHT_PARAMS[base.renderType].directionalLightDensity );
-        directionalLight.shadowCameraVisible = true;
+        // directionalLight.shadowCameraVisible = true;
         directionalLight.position.set( 0, 6000, 5000 );
         directionalLight.target.position.set( 0, 0, 0 );
         directionalLight.castShadow = true;
@@ -486,7 +641,7 @@
         base.renderer.shadowMapType = THREE.PCFShadowMap;
         //listeners
         window.addEventListener('unload', onWindowBeforeUnload, false );
-        window.addEventListener('reload', onWindowBeforeUnload, false );
+        window.addEventListener('reload', onWindowReload, false );
         base.renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
         base.renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
         base.renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
