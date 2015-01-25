@@ -29,7 +29,8 @@
 
 .sidebar #sidebarResize {
 	position: fixed;
-	margin: -18px 0 0 -17px;
+	top: inherit;
+	margin: 3px 0 0 -17px;
 	width: 16px;
 }
 
