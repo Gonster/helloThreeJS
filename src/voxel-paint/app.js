@@ -485,7 +485,8 @@
         base.renderer.shadowMapEnabled = true;
         base.renderer.shadowMapType = THREE.PCFShadowMap;
         //listeners
-        window.addEventListener('beforeunload', onWindowBeforeUnload, false );
+        window.addEventListener('unload', onWindowBeforeUnload, false );
+        window.addEventListener('reload', onWindowBeforeUnload, false );
         base.renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
         base.renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
         base.renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
