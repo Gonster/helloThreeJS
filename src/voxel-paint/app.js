@@ -356,7 +356,7 @@
                         $(sidebar).animate({top:'0',height:'100%'});
                     }
                     else{
-                        $(sidebar).animate({top:'70%',height:'30%'});
+                        $(sidebar).animate({top:'60%',height:'40%'});
                     }
                     break;
             }
