@@ -31,21 +31,34 @@
         },
         'asyncLoadDefaultInterval': 0,
         'storageKeys': {
-            'meshes': 'vp_meshs'
+            'meshes': 'vp_meshs',
+            'camera': 'vp_camera'
         },
         'load': function (key){
             return  window.localStorage && window.localStorage.getItem(key || this.storageKeys.meshes);
         },
-        'save': function (key){
+        'save': function (key, data){
             if( ! window.localStorage ) return;
             var save = '';
-            for (var i = 0, l = cubeMeshes.length; i < l; i++) {
-                save += cubeMeshes[i].geo.id.replace('geo','') + ',';
-                save += cubeMeshes[i].material.id.replace('texture','') + ',';
-                save += cubeMeshes[i].meshObject.position.x + ',';
-                save += cubeMeshes[i].meshObject.position.y + ',';
-                save += cubeMeshes[i].meshObject.position.z + ';';
+            if( ! data ){
+                switch(key){
+                    default:
+                    case this.storageKeys.meshes:
+                    case undefined:
+                        for (var i = 0, l = cubeMeshes.length; i < l; i++) {
+                            save += cubeMeshes[i].geo.id.replace('geo','') + ',';
+                            save += cubeMeshes[i].material.id.replace('texture','') + ',';
+                            save += cubeMeshes[i].meshObject.position.x + ',';
+                            save += cubeMeshes[i].meshObject.position.y + ',';
+                            save += cubeMeshes[i].meshObject.position.z + ';';
+                        }
+                        break;
+                    case this.storageKeys.camera:
+                        save += (base.controls.target.x + ',' + base.controls.target.y + ',' + base.controls.target.z + ';');
+                        save += (base.controls.object.position.x + ',' + base.controls.object.position.y + ',' + base.controls.object.position.z + ';');
+                }
             }
+            else save = data;
             window.localStorage.setItem(key || this.storageKeys.meshes, save);
         },
         'loadMeshes': function loadMeshes(key, loadType){
@@ -63,7 +76,7 @@
                             for(var i = 0, l = loadDataArray.length; i < l; i++){
                                 var currentData = loadDataArray[i].split(',');
                                 if( currentData.length > 2 ){
-                                    pen.draw( currentData[0], currentData[1], [currentData[2], currentData[3], currentData[4]] );
+                                    pen.draw( Number(currentData[0]), Number(currentData[1]), [Number(currentData[2]), Number(currentData[3]), Number(currentData[4])] );
                                 }
                             }
                             break;
@@ -73,7 +86,7 @@
                                 if(loadIterator < loadDataArray.length){
                                     var currentData = loadDataArray[loadIterator].split(',');
                                     if( currentData.length > 2 ){
-                                        pen.draw( currentData[0], currentData[1], [currentData[2], currentData[3], currentData[4]] );
+                                        pen.draw( Number(currentData[0]), Number(currentData[1]), [Number(currentData[2]), Number(currentData[3]), Number(currentData[4])] );
                                     }
                                 }
                                 else{
@@ -86,6 +99,27 @@
                             break;
                     }
                 }
+            }
+        },
+        'loadCamera': function loadCamera(key) {
+            var loadDataArray = []; 
+            {
+                var load = this.load(key);
+                if(load) loadDataArray = load.split(';');
+            }
+            if(loadDataArray.length > 0){
+                for(var i = 0, l = loadDataArray.length; i < l; i++){
+                    var currentData = loadDataArray[i].split(',');
+                    switch(i){
+                        case 0:
+                            base.controls.target.set(Number(currentData[0]), Number(currentData[1]), Number(currentData[2]));
+                            break;
+                        case 1:
+                            base.controls.object.position.set(Number(currentData[0]), Number(currentData[1]), Number(currentData[2]));
+                            break;
+                    }
+                }
+                base.controls.update();
             }
         }
     };
@@ -281,6 +315,7 @@
 
     //listeners
     function onWindowBeforeUnload(event) {
+        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
         voxelPaintStorageManager.save();
     }
 
@@ -731,5 +766,6 @@
     }
     
     voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType);
+    voxelPaintStorageManager.loadCamera(voxelPaintStorageManager.storageKeys.camera);
 
 })( window, document, Base, THREE, Detector );
