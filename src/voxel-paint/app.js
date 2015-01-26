@@ -2,7 +2,7 @@
 *@author Gonster  ( gonster.github.io )
 */
 
-(function ( window, document, Base, THREE, Detector ) {
+(function( window, document, Base, THREE, Detector ){
     //image download dom element
     var imageCaptureDomElement = document.createElement('a');
     imageCaptureDomElement.id = 'imageCapture';
@@ -312,7 +312,7 @@
             'draw': 'erase',
             'erase': 'draw'
         }
-    }
+    };
 
 
     //constants
@@ -360,7 +360,7 @@
         {
             'name': 'default',
             'type': 'color',
-            'abstract': '#86b74c',
+            'uniqueData': '#86b74c',
             'id': 'texture0',
             'data': defaultMaterial,
             'helperData': insertAIntoB(helperBoxMaterialDiff, defaultMaterial)
@@ -751,7 +751,7 @@
                                             'id': 'eraser'
                                         }
                                     ]    
-                                },
+                                }
                                 // {
                                 //     'UIType': 'buttonGroup',
                                 //     'title': '画笔半径',
@@ -850,7 +850,7 @@
                                     'title': '',
                                     'id': 'texture0',
                                     'bgType': materials[0].type,
-                                    'bgTypeData': materials[0].abstract,
+                                    'bgTypeData': materials[0].uniqueData,
                                     'width': defaultTexturesButtonWidth,
                                     'height': defaultTexturesButtonWidth,
                                     'checked': true  
@@ -911,7 +911,7 @@
             'name': basicColors[i],
             'type': 'color',
             'id': 'texture' + (i+1),
-            'abstract': basicColors[i],
+            'uniqueData': basicColors[i],
             'data': new THREE.MeshLambertMaterial( { color: basicColors[i] } )
         }
         materials.push(m);
@@ -920,7 +920,7 @@
             'title': '',
             'id': m.id,
             'bgType': m.type,
-            'bgTypeData': m.abstract,
+            'bgTypeData': m.uniqueData,
             'width': defaultTexturesButtonWidth,
             'height': defaultTexturesButtonWidth
         }).addEventListener('click', onSidebarBtnClick, false);
@@ -938,7 +938,7 @@
             'name': texturePaths[i].replace('texture/','').replace('.png',''),
             'type': 'image',
             'id': 'texture' +materials.length,
-            'abstract': texturePaths[i],
+            'uniqueData': texturePaths[i],
             'data': new THREE.MeshLambertMaterial( { map: THREE.ImageUtils.loadTexture(texturePaths[i]), transparent: true } )
         }
         if(m.data.name === 'glass') m.data.map.opacity = 0.3;
@@ -950,7 +950,7 @@
             'title': '',
             'id': m.id,
             'bgType': m.type,
-            'bgTypeData': m.abstract,
+            'bgTypeData': m.uniqueData,
             'width': defaultTexturesButtonWidth,
             'height': defaultTexturesButtonWidth
         }).addEventListener('click', onSidebarBtnClick, false);
