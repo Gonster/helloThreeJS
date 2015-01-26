@@ -6,7 +6,8 @@
     //image download dom element
     var imageCaptureDomElement = document.createElement('a');
     imageCaptureDomElement.id = 'imageCapture';
-    imageCaptureDomElement.style.display = 'none';
+    imageCaptureDomElement.style.display = 'none';    
+    imageCaptureDomElement.target = '_blank';
     document.body.appendChild(imageCaptureDomElement);
 
     //utils
