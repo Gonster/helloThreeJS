@@ -3045,9 +3045,11 @@ if ( typeof module === 'object' ) {
                         switch(buttons[j].bgType){
                             case 'color':
                                 bg = buttons[j].bgTypeData;
+                                aRadioButtonLabel.className += ' btn-color';
                                 break;
                             case 'image':
                                 bg = 'url('+buttons[j].bgTypeData+') no-repeat 50% 50%';
+                                aRadioButtonLabel.className += ' btn-image';
                                 break;
                             default:
                                 return;
@@ -3088,9 +3090,11 @@ if ( typeof module === 'object' ) {
                         switch(buttons[j].bgType){
                             case 'color':
                                 bg = buttons[j].bgTypeData;
+                                aRadioButtonLabel.className += ' btn-color';
                                 break;
                             case 'image':
                                 bg = 'url('+buttons[j].bgTypeData+') no-repeat 50% 50%';
+                                aRadioButtonLabel.className += ' btn-image';
                                 break;
                             default:
                                 return;
@@ -3125,9 +3129,11 @@ if ( typeof module === 'object' ) {
             switch(button.bgType){
                 case 'color':
                     bg = button.bgTypeData;
+                    aRadioButtonLabel.className += ' btn-color';
                     break;
                 case 'image':
                     bg = 'url('+button.bgTypeData+') no-repeat 50% 50%';
+                    aRadioButtonLabel.className += ' btn-image';
                     break;
                 default:
                     return;
@@ -3372,6 +3378,7 @@ if ( typeof module === 'object' ) {
                 }
             }
             this.currentActionIndex--;
+            this.updateDom();
         },
         'redo': function() {
             var currentAction;
@@ -3404,6 +3411,7 @@ if ( typeof module === 'object' ) {
                 }
             }
             this.currentActionIndex++;
+            this.updateDom();
         },
         'addAction': function(actionType, mesh) {
             //截断
@@ -3415,6 +3423,7 @@ if ( typeof module === 'object' ) {
             };
             this.actionArray.push(action);
             this.currentActionIndex++;
+            this.updateDom();
         },
         'appendObjectToCurrentAction': function(mesh) {
             var currentAction = this.actionArray[this.currentActionIndex];
@@ -3439,6 +3448,10 @@ if ( typeof module === 'object' ) {
                 }
 
             }
+        },
+        'updateDom': function() {            
+            document.getElementById('undo').disabled = (this.currentActionIndex < 0) ? true : false;
+            document.getElementById('redo').disabled = (this.currentActionIndex >= (this.actionArray.length - 1)) ? true : false;
         }
     };
 
@@ -3551,9 +3564,9 @@ if ( typeof module === 'object' ) {
     var autoSaveInterval = 120*1000;
     var autoSaveIntervalHandler;
     var defaultLoadType = VoxelPaintStorageManager.prototype.LOAD_TYPE.async;
-    var defaultTexturesButtonWidth = 57;
+    var defaultTexturesButtonWidth = 50;
 
-    var defaultMaterial = new THREE.MeshLambertMaterial( { color: 0x86b74c } );
+    var defaultMaterial = new THREE.MeshLambertMaterial( { color: 0x090909 } );
 
     var helperBoxMaterialDiff={        
         opacity: .5,
@@ -3564,7 +3577,7 @@ if ( typeof module === 'object' ) {
         {
             'name': 'default',
             'type': 'color',
-            'uniqueData': '#86b74c',
+            'uniqueData': '#090909',
             'id': 'texture0',
             'data': defaultMaterial,
             'helperData': insertAIntoB(helperBoxMaterialDiff, defaultMaterial)
@@ -3581,11 +3594,16 @@ if ( typeof module === 'object' ) {
         }
     ];
 
+    var texturesButton = {
+        'image': 12,
+        'color' : 0 
+    };
     var auxToggle = true;
     var sidebarParams = {
         'toolsType': 0,
         'toolsRadius': 0,
         'textures': 0,
+        'texturesType': 0,
         'toggleAux': function(){
             (sidebarParams['toolsType'] === 1) || (helperCube.visible = ! helperCube.visible);
             gridHelper.visible = ! gridHelper.visible;
@@ -3597,6 +3615,7 @@ if ( typeof module === 'object' ) {
             imageCaptureDomElement.click();
         },
         'clearAll': function(){
+            if (cubeMeshes.length < 1) return; 
             var mesh = pen.erase(cubeMeshes[0].meshObject);
             actionRecorder.addAction('erase', mesh);
             for (var i = 0, l = cubeMeshes.length; i < l; i++) {
@@ -3742,7 +3761,7 @@ if ( typeof module === 'object' ) {
                 // onWindowResize();
                 var intersects = calculateIntersectResult(event);
                 drawVoxel(intersects, undefined, true, false);
-                if(currentToolsType === 0) updateHelperCube(intersects);
+                if(sidebarParams['toolsType'] === 0) updateHelperCube(intersects);
                 break;
             case 1:
                 mouseState[1] = 1;
@@ -3773,6 +3792,17 @@ if ( typeof module === 'object' ) {
                     }
                     else{
                         $(sidebar).animate({top:'60%',height:'40%'});
+                    }
+                    break;
+                case 'texturesType':
+                    var type = radio.id;
+                    if(type === 'imageTexture'){
+                        $('.btn-color').hide();
+                        $('.btn-image').show();                        
+                    }
+                    else if(type === 'colorTexture'){
+                        $('.btn-color').show();           
+                        $('.btn-image').hide();                        
                     }
                     break;
             }
@@ -4045,6 +4075,23 @@ if ( typeof module === 'object' ) {
                     'children':[
                         {
                             'UIType': 'buttonGroup',
+                            'title': '',
+                            'id': 'buttonGroupTexturesType',
+                            'name': 'texturesType',
+                            'buttons':[
+                                {
+                                    'title': '贴图',
+                                    'id': 'imageTexture',
+                                    'checked': true  
+                                },
+                                {
+                                    'title': '颜色',
+                                    'id': 'colorTexture'
+                                }
+                            ]
+                        },
+                        {
+                            'UIType': 'buttonGroup',
                             'title': '材料',
                             'id': 'buttonGroup2',
                             'name': 'textures',
@@ -4081,6 +4128,8 @@ if ( typeof module === 'object' ) {
         }
     }
     GoUI.Utils.domCreationDirector(UI_JSON);
+
+    actionRecorder.updateDom();
     
     //sidebar event management
     var domArray = document.querySelectorAll('.btn');
@@ -4096,27 +4145,31 @@ if ( typeof module === 'object' ) {
     }
 
     //load other textures
+    function loadSidebarTextures(raw){
+
+    }
+
     var basicColors = [
-        '#66ccff',
-        '#ff6600',
-        '#cc3333',
-        '#ffcc33',
-        '#33cc99',
-        '#3399cc',
-        '#b1eb00',
-        '#53bbf4',
-        '#ff85cb',
-        '#ff432e',        
-        '#ffac00'
+        {'color': '#333333'},{'color': '#7f7f7f'},{'color': '#c3c3c3'},{'color': '#ffffff'},
+        {'color': '#b97a57'},{'color': '#ff7f27'},{'color': '#880015'},{'color': '#ed1c24'},{'color': '#ffaec9'},
+        {'color': '#ffc90e'},{'color': '#fff200'},{'color': '#efe4b0'},{'color': '#22b14c'},{'color': '#b5e61d'},
+        {'color': '#00a2e8'},{'color': '#3f48cc'},{'color': '#7092be'},{'color': '#a349a4'},{'color': '#c8bfe7'},
+        {'color': '#66ccff'},{'color': '#ff6600'},{'color': '#cc3333'},{'color': '#ffcc33'},{'color': '#33cc99'},
+        {'color': '#ff55cc'},{'color': '#b1eb00'},{'color': '#b1eb88'},{'color': '#ff85cb'},{'color': '#ff432e'}
+        // ,
+        // {'color': '#000000'},{'color': '#000000'},{'color': '#000000'},{'color': '#000000'},{'color': '#000000'},
+        // {'color': '#000000'},{'color': '#000000'},{'color': '#000000'},{'color': '#000000'},{'color': '#000000'},
+        // {'color': '#000000'},{'color': '#000000'},{'color': '#000000'},{'color': '#000000'},{'color': '#000000'},
+        // {'color': '#000000'},{'color': '#000000'},{'color': '#000000'},{'color': '#000000'},{'color': '#000000'}
     ];
 
     for (var i = 0, l = basicColors.length ; i < l; i++) {
         var m ={
-            'name': basicColors[i],
+            'name': basicColors[i].color,
             'type': 'color',
             'id': 'texture' + (i+1),
-            'uniqueData': basicColors[i],
-            'data': new THREE.MeshLambertMaterial( { color: basicColors[i] } )
+            'uniqueData': basicColors[i].color,
+            'data': new THREE.MeshLambertMaterial( { color: basicColors[i].color } )
         }
         materials.push(m);
 
@@ -4133,7 +4186,12 @@ if ( typeof module === 'object' ) {
     var texturePaths = [
         'texture/grass.png',
         'texture/sand.png',
-        'texture/glass.png'
+        'texture/glass.png',
+        'texture/rock.png',
+        'texture/clay.png',
+        'texture/dirt.png',
+        'texture/bark.png',
+        'texture/slats.png'
     ];
 
 
