@@ -3,6 +3,11 @@
 */
 
 (function ( window, document, Base, THREE, Detector ) {
+    //image download dom element
+    var imageCaptureDomElement = document.createElement('a');
+    imageCaptureDomElement.id = 'imageCapture';
+    imageCaptureDomElement.style.display = 'none';
+    document.body.appendChild(imageCaptureDomElement);
 
     //utils
     function insertAIntoB(a, b){
@@ -371,10 +376,35 @@
         }
     ];
 
+    var auxToggle = true;
     var sidebarParams = {
         'toolsType': 0,
         'toolsRadius': 0,
-        'textures': 0
+        'textures': 0,
+        'toggleAux': function(){
+            (sidebarParams['toolsType'] === 1) || (helperCube.visible = ! helperCube.visible);
+            gridHelper.visible = ! gridHelper.visible;
+            auxToggle = ! auxToggle;
+        },
+        'capture': function(){
+            imageCaptureDomElement.href = base.renderer.domElement.toDataURL();
+            imageCaptureDomElement.download = 'capture.png';
+            imageCaptureDomElement.click();
+        },
+        'clearAll': function(){
+            var mesh = pen.erase(cubeMeshes[0].meshObject);
+            actionRecorder.addAction('erase', mesh);
+            for (var i = 0, l = cubeMeshes.length; i < l; i++) {
+                mesh = pen.erase(cubeMeshes[0].meshObject);
+                actionRecorder.appendObjectToCurrentAction(mesh);
+            };
+        },
+        'undo': function(){
+            actionRecorder.undo();
+        },
+        'redo': function(){
+            actionRecorder.redo();   
+        }         
     };
 
     var currentBoxMaterialParentIndex = 0;
@@ -481,7 +511,7 @@
                 if(helperCube.visible) helperCube.visible = false;
             }
             else {
-                if(!helperCube.visible) helperCube.visible = true;
+                if(!helperCube.visible && auxToggle) helperCube.visible = true;
                 intersects = calculateIntersectResult(event);
                 updateHelperCube(intersects);
             }
@@ -542,7 +572,7 @@
                     break;
             }
         }
-        else if(this.type === 'button'){
+        else if(this.type === 'button' || this.nodeName.toLowerCase() === 'button'){
             sidebarParams[this.id]();
         }
     }
@@ -757,10 +787,12 @@
                             'title': '',
                             'id': 'buttonGroup3',
                             'name': 'aux',
-                            'buttons':[
+                            'buttonType': 'button',
+                            'appendClass': 'btn-group-toolbtn',
+                            'buttons': [
                                 {
-                                    'title': '隐藏辅助物体',
-                                    'id': 'hideAux',
+                                    'title': '辅助物体开关',
+                                    'id': 'toggleAux',
                                     'checked': true 
                                 },
                                 {
@@ -781,6 +813,8 @@
                                     'UIType': 'buttonGroup',
                                     'id': 'buttonGroup3',
                                     'name': 'actions',
+                                    'buttonType': 'button',
+                                    'appendClass': 'btn-group-toolbtn',
                                     'buttons':[
                                         {
                                             'title': '撤销',
