@@ -4194,7 +4194,7 @@ if ( typeof module === 'object' ) {
         'texture/slats.png'
     ];
 
-
+    THREE.ImageUtils.crossOrigin = 'Anonymous';
     for (var i = 0, l = texturePaths.length ; i < l; i++) {
         var m ={
             'name': texturePaths[i].replace('texture/','').replace('.png',''),
