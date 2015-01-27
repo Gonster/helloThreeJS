@@ -28,17 +28,62 @@
     }
 
     //classes
-    var VoxelPaintStorageManager = function(){};
+    var VoxelAnimationManager = function(endFlag){
+        // this.animationCount = 0;     
+        // this.animationIntervalHandler = [];
+        this.endFlag = endFlag;
+        this.currentAnimationIntervalHandler = -1;
+        this.currentMeshes = [];
+        this.currentIterator = 0;
+    };
+
+    VoxelAnimationManager.prototype = {  
+        'asyncLoadDefaultInterval': 1,
+        'loadBoxAnimation': function() {            
+                
+                var meshes = voxelAnimationManager.currentMeshes;
+                if(voxelAnimationManager.currentIterator < meshes.length){
+                    meshes[voxelAnimationManager.currentIterator].meshObject.visible = true;
+                }
+                else{
+                    voxelAnimationManager.endFlag = true;
+                    clearInterval(voxelAnimationManager.currentAnimationIntervalHandler);
+                }
+                voxelAnimationManager.currentIterator++;       
+
+        },
+        'begin': function(animation, meshes, interval){
+            this.endFlag = false;
+            this.currentMeshes = meshes;
+            this.currentIterator = 0;
+            this.currentAnimationIntervalHandler = setInterval( animation, interval || this.asyncLoadDefaultInterval );
+            return;
+        },
+        'instantComplete': function(animation) {    
+            if (this.endFlag === true) return;      
+            var meshes = voxelAnimationManager.currentMeshes;
+            clearInterval(this.currentAnimationIntervalHandler);
+            while(this.currentIterator < meshes.length){
+                animation();
+            }
+            this.endFlag = true;
+        }
+    };
+
+    var VoxelPaintStorageManager = function(isLoadingBoxEnd){
+        //loading animation flag   not end yet
+        this.isLoadingBoxEnd = isLoadingBoxEnd;
+    };
 
     VoxelPaintStorageManager.prototype = {
         'LOAD_TYPE': {
             'async': 0,
             'sync': 1
         },
-        'asyncLoadDefaultInterval': 0,
         'storageKeys': {
             'meshes': 'vp_meshs',
-            'camera': 'vp_camera'
+            'camera': 'vp_camera',
+            'textures': 'vp_texures'
         },
         'load': function (key){
             return  window.localStorage && window.localStorage.getItem(key || this.storageKeys.meshes);
@@ -51,6 +96,7 @@
                     default:
                     case this.storageKeys.meshes:
                     case undefined:
+                        if( ! this.isLoadingBoxEnd && actionRecorder.currentActionIndex < 0) return;
                         for (var i = 0, l = cubeMeshes.length; i < l; i++) {
                             save += cubeMeshes[i].geo.id.replace('geo','') + ',';
                             save += cubeMeshes[i].material.id.replace('texture','') + ',';
@@ -62,49 +108,49 @@
                     case this.storageKeys.camera:
                         save += (base.controls.target.x + ',' + base.controls.target.y + ',' + base.controls.target.z + ';');
                         save += (base.controls.object.position.x + ',' + base.controls.object.position.y + ',' + base.controls.object.position.z + ';');
+                        break;
+                    case this.storageKeys.textures:
+                        save += texturesButton.image + ',' + texturesButton.color + ',' + sidebarParams['texturesType'];
+                        break;
                 }
             }
             else save = data;
             window.localStorage.setItem(key || this.storageKeys.meshes, save);
         },
-        'loadMeshes': function loadMeshes(key, loadType){
-            var loadIterator = 0;
+        'loadMeshes': function loadMeshes(key, loadType, animation){
+            this.isLoadingBoxEnd = false;
+            var loadDataArray = []; 
             {
-                var loadDataArray = []; 
-                var intervalCallback;
-                {
-                    var load = this.load(key);
-                    if(load) loadDataArray = load.split(';');
-                }
-                if(loadDataArray.length > 0){
-                    switch(loadType){
-                        case this.LOAD_TYPE.sync:
-                            for(var i = 0, l = loadDataArray.length; i < l; i++){
-                                var currentData = loadDataArray[i].split(',');
-                                if( currentData.length > 2 ){
-                                    pen.draw( Number(currentData[0]), Number(currentData[1]), [Number(currentData[2]), Number(currentData[3]), Number(currentData[4])] );
-                                }
+                var load = this.load(key);
+                if(load) loadDataArray = load.split(';');
+            }
+            if(loadDataArray.length > 0){
+                switch(loadType){
+                    case this.LOAD_TYPE.sync:
+                        for(var i = 0, l = loadDataArray.length; i < l; i++){
+                            var currentData = loadDataArray[i].split(',');
+                            if( currentData.length > 2 ){
+                                //generate all meshes    visible
+                                pen.draw( Number(currentData[0]), Number(currentData[1]), [Number(currentData[2]), Number(currentData[3]), Number(currentData[4])]);
                             }
-                            break;
-                        default:
-                        case this.LOAD_TYPE.async:
-                            var loader = function(){
-                                if(loadIterator < loadDataArray.length){
-                                    var currentData = loadDataArray[loadIterator].split(',');
-                                    if( currentData.length > 2 ){
-                                        pen.draw( Number(currentData[0]), Number(currentData[1]), [Number(currentData[2]), Number(currentData[3]), Number(currentData[4])] );
-                                    }
-                                }
-                                else{
-                                    clearInterval(intervalCallback);
-                                    return;
-                                }
-                                loadIterator++;
-                            };
-                            intervalCallback = setInterval( loader, this.asyncLoadDefaultInterval );
-                            break;
-                    }
+                        }
+                        this.isLoadingBoxEnd = true;
+                        break;
+                    default:
+                    case this.LOAD_TYPE.async:
+                        for(var i = 0, l = loadDataArray.length; i < l; i++){
+                            var currentData = loadDataArray[i].split(',');
+                            if( currentData.length > 2 ){
+                                //generate all meshes    invisible
+                                pen.draw( Number(currentData[0]), Number(currentData[1]), [Number(currentData[2]), Number(currentData[3]), Number(currentData[4])], undefined, undefined, true);
+                            }
+                        }
+                        voxelAnimationManager.begin(animation, cubeMeshes);
+                        break;
                 }
+            }
+            else{
+                voxelAnimationManager.endFlag = true;
             }
         },
         'loadCamera': function loadCamera(key) {
@@ -126,6 +172,37 @@
                     }
                 }
                 base.controls.update();
+            }
+        },
+        'loadTextureSelectedButtons': function loadTextureSelectedButtons(key) {
+            var loadDataArray = []; 
+            {
+                var load = this.load(key);
+                if(load) loadDataArray = load.split(',');
+            }
+            if(loadDataArray.length > 0){
+                for(var i = 0, l = loadDataArray.length; i < l; i++){
+                    var currentData = loadDataArray[i];
+                    switch(i){
+                        case 0:
+                            texturesButton.image = Number(currentData);
+                            break;
+                        case 1:
+                            texturesButton.color = Number(currentData);
+                            break;
+                        case 2:
+                            if(Number(currentData) === 0){
+                                document.getElementById('imageTexture').parentElement.click();
+                            }
+                            else{
+                                document.getElementById('colorTexture').parentElement.click();
+                            }
+                            break;
+                    }
+                }
+            }
+            else{
+                document.getElementById('imageTexture').parentElement.click();
             }
         }
     };
@@ -275,7 +352,7 @@
         'calculateIntersectResult': calculateIntersectResult,
         'setMeshPositionToFitTheGrid': setMeshPositionToFitTheGrid,
         'updateHelperCube': updateHelperCube,
-        'draw': function (geo, material, xyz, intersect, mesh){
+        'draw': function (geo, material, xyz, intersect, mesh, notVisibleInTheScene){
 
             var geoIndex,currentBoxGeometryParent,materialIndex,currentBoxMaterialParent;
 
@@ -301,6 +378,7 @@
             currentCube.castShadow = true;
             currentCube.receiveShadow = true;
             intersect ? setMeshPositionToFitTheGrid( currentCube, intersect ) : currentCube.position.set(xyz[0], xyz[1], xyz[2]);
+            (!notVisibleInTheScene) || (currentCube.visible = false);
             base.scene.add( currentCube );
             allIntersectableObjects.push( currentCube );
             cubeMeshes.push( { 'meshObject': currentCube,  'geo': currentBoxGeometryParent, 'material': currentBoxMaterialParent } );
@@ -385,7 +463,7 @@
     ];
 
     var texturesButton = {
-        'image': 12,
+        'image': 30,
         'color' : 0 
     };
     var auxToggle = true;
@@ -405,6 +483,9 @@
             imageCaptureDomElement.click();
         },
         'clearAll': function(){
+            if( !voxelAnimationManager.endFlag ){
+                voxelAnimationManager.instantComplete(voxelAnimationManager.loadBoxAnimation);
+            }
             if (cubeMeshes.length < 1) return; 
             var mesh = pen.erase(cubeMeshes[0].meshObject);
             actionRecorder.addAction('erase', mesh);
@@ -438,7 +519,8 @@
     var mouseOnScreenVector, mouseState = [0,0,0];
     var raycaster;
 
-    var voxelPaintStorageManager = new VoxelPaintStorageManager();
+    var voxelAnimationManager = new VoxelAnimationManager();
+    var voxelPaintStorageManager = new VoxelPaintStorageManager(false);
     var actionRecorder =new ActionRecorder();
     var pen = new Pen();
 
@@ -486,12 +568,14 @@
     function onWindowBeforeUnload(event) {
         if(reloadFlag === 0){
             voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
+            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.textures);
             voxelPaintStorageManager.save();
         }
     }
 
     function onWindowReload(event) {
         voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
+        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.textures);
         voxelPaintStorageManager.save();
         reloadFlag = 1;
     }
@@ -547,6 +631,10 @@
             case -1:
                 break;
             case 0:
+                if( !voxelAnimationManager.endFlag ){
+                    voxelAnimationManager.instantComplete(voxelAnimationManager.loadBoxAnimation);
+                    break;
+                }
                 mouseState[0] = 1;
                 // onWindowResize();
                 var intersects = calculateIntersectResult(event);
@@ -568,12 +656,31 @@
             sidebarParams[radio.name] = Number(radio.value);
             // console.log(sidebarParams);
             switch(radio.name){
+                case 'toolsType':
+                    var currentToolsType = Number(radio.value);
+                    if(currentToolsType === 1) {
+                        if(helperCube.visible) helperCube.visible = false;
+                    }
+                    else {
+                        if(!helperCube.visible && auxToggle) helperCube.visible = true;
+                    }
+                    break;
                 case 'textures':
                     currentBoxMaterialParentIndex = sidebarParams[radio.name];
                     currentBoxMaterialParent = materials[currentBoxMaterialParentIndex];
                     currentBoxMaterial = currentBoxMaterialParent.data;
                     currentHelperBoxMaterial = currentBoxMaterialParent.helperData = materials[sidebarParams[radio.name]].helperData || insertAIntoB(helperBoxMaterialDiff, currentBoxMaterial);
                     helperCube.material = currentHelperBoxMaterial;
+                    document.getElementById('cube').parentElement.click();
+                    switch(sidebarParams['texturesType']){
+                        case 0:
+                            texturesButton.image = radio.value;
+                            break;
+                        default:
+                        case 1:                            
+                            texturesButton.color = radio.value;
+                            break;
+                    }
                     break;
                 case 'sidebarResize' :
                     var sidebar = GoUI.map['sidebar'].domElement;
@@ -588,11 +695,13 @@
                     var type = radio.id;
                     if(type === 'imageTexture'){
                         $('.btn-color').hide();
-                        $('.btn-image').show();                        
+                        $('.btn-image').show(); 
+                        document.getElementById('texture'+texturesButton.image).parentElement.click();                  
                     }
                     else if(type === 'colorTexture'){
                         $('.btn-color').show();           
-                        $('.btn-image').hide();                        
+                        $('.btn-image').hide();                           
+                        document.getElementById('texture'+texturesButton.color).parentElement.click();                                 
                     }
                     break;
             }
@@ -712,6 +821,7 @@
         base.renderer.render( base.scene, base.camera );
     }
 
+    //begin
     base = new Base( document.body );
     base.init( onWindowResize, subInit );
     animate();
@@ -1008,7 +1118,10 @@
         }).addEventListener('click', onSidebarBtnClick, false);
     }
     
-    voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType);
     voxelPaintStorageManager.loadCamera(voxelPaintStorageManager.storageKeys.camera);
+
+    voxelPaintStorageManager.loadTextureSelectedButtons(voxelPaintStorageManager.storageKeys.textures);
+
+    voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
 
 })( window, document, Base, THREE, Detector );
