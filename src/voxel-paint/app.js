@@ -11,6 +11,27 @@
     document.body.appendChild(imageCaptureDomElement);
 
     //utils
+    function iterateTextures( isReversed ){
+        var textureId = sidebarParams['textures'] + ((isReversed) ? -1 : 1 )
+        var radio = document.getElementById('texture'+textureId);
+        if(!radio){
+            textureId = (isReversed) ? (materials.length - 1) : 0;
+            radio = document.getElementById('texture'+textureId);
+            if(!radio) return;
+        }
+        var isColor = radio.parentElement.className.indexOf('btn-color');
+        var isImage = radio.parentElement.className.indexOf('btn-image');
+
+        if(isColor > -1) {
+            texturesButton.color = Number(radio.value);
+            document.getElementById('colorTexture').parentElement.click();
+        }
+        else if(isImage > -1) {
+            texturesButton.image = Number(radio.value);
+            document.getElementById('imageTexture').parentElement.click();
+        }
+    }
+
     function insertAIntoB(a, b){
         var c = b.clone();
         for(var i in a){
@@ -774,7 +795,16 @@
     }
 
     function onDocumentKeyDown(event) {   
-
+        switch(event.keyCode){
+            //c
+            case 67:
+                iterateTextures();
+                break;
+            //x
+            case 88:
+                iterateTextures(true);
+                break;
+        }
     }
 
     function onDocumentKeyUp(event) {  
