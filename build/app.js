@@ -3293,7 +3293,7 @@ if ( typeof module === 'object' ) {
         'storageKeys': {
             'meshes': 'vp_meshs',
             'camera': 'vp_camera',
-            'textures': 'vp_texures'
+            'sidebar': 'vp_sidebar'
         },
         'load': function (key){
             return  window.localStorage && window.localStorage.getItem(key || this.storageKeys.meshes);
@@ -3319,8 +3319,8 @@ if ( typeof module === 'object' ) {
                         save += (base.controls.target.x + ',' + base.controls.target.y + ',' + base.controls.target.z + ';');
                         save += (base.controls.object.position.x + ',' + base.controls.object.position.y + ',' + base.controls.object.position.z + ';');
                         break;
-                    case this.storageKeys.textures:
-                        save += texturesButton.image + ',' + texturesButton.color + ',' + sidebarParams['texturesType'];
+                    case this.storageKeys.sidebar:
+                        save += texturesButton.image + ',' + texturesButton.color + ',' + sidebarParams['texturesType'] + ',' + sidebarParams['sidebarResize'];
                         break;
                 }
             }
@@ -3384,7 +3384,7 @@ if ( typeof module === 'object' ) {
                 base.controls.update();
             }
         },
-        'loadTextureSelectedButtons': function loadTextureSelectedButtons(key) {
+        'loadSidebarSelectedButtons': function loadSidebarSelectedButtons(key) {
             var loadDataArray = []; 
             {
                 var load = this.load(key);
@@ -3406,6 +3406,14 @@ if ( typeof module === 'object' ) {
                             }
                             else{
                                 document.getElementById('colorTexture').parentElement.click();
+                            }
+                            break;
+                        case 3:
+                            if(Number(currentData) === 0){
+                                document.getElementById('normalSidebar').parentElement.click();
+                            }
+                            else{
+                                document.getElementById('minSidebar').parentElement.click();
                             }
                             break;
                     }
@@ -3778,14 +3786,14 @@ if ( typeof module === 'object' ) {
     function onWindowBeforeUnload(event) {
         if(reloadFlag === 0){
             voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.textures);
+            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
             voxelPaintStorageManager.save();
         }
     }
 
     function onWindowReload(event) {
         voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.textures);
+        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
         voxelPaintStorageManager.save();
         reloadFlag = 1;
     }
@@ -4330,7 +4338,7 @@ if ( typeof module === 'object' ) {
     
     voxelPaintStorageManager.loadCamera(voxelPaintStorageManager.storageKeys.camera);
 
-    voxelPaintStorageManager.loadTextureSelectedButtons(voxelPaintStorageManager.storageKeys.textures);
+    voxelPaintStorageManager.loadSidebarSelectedButtons(voxelPaintStorageManager.storageKeys.sidebar);
 
     voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
 
