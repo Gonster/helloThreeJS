@@ -493,9 +493,9 @@
     }
 
     var DRAW_VOXEL_SAME_CUBE_DEFINITION = 3;
-
+    THREE.ImageUtils.crossOrigin = 'Anonymous';
     var base;
-    var basePlaneGeometry, basePlaneMesh;
+    var basePlaneGeometry, basePlaneMesh, basePlaneMaterial;
     var reloadFlag = 0;
 
     var autoSaveInterval = 120*1000;
@@ -832,14 +832,20 @@
 
     function subInit() {
         //grid
-        gridHelper = new THREE.GridHelper( DEFAULT_PLANE.width / 2.0, DEFAULT_BOX.width );
-        base.scene.add( gridHelper );
+        // gridHelper = new THREE.GridHelper( DEFAULT_PLANE.width / 2.0, DEFAULT_BOX.width );
+        // base.scene.add( gridHelper );
 
         //base plane
         basePlaneGeometry = new THREE.PlaneBufferGeometry( DEFAULT_PLANE.width, DEFAULT_PLANE.height );
         basePlaneGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
-        basePlaneMesh = new THREE.Mesh( basePlaneGeometry );
-        basePlaneMesh.visible = false;
+        var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grass.png');
+        basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
+        basePlaneTexture.repeat.set(15, 15);
+        basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture} );        
+        basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33} );
+        basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
+        basePlaneMesh.receiveShadow = true;
+        // basePlaneMesh.visible = false;
         base.scene.add( basePlaneMesh );
         allIntersectableObjects.push( basePlaneMesh );
 
@@ -1175,7 +1181,7 @@
         'texture/slats.png'
     ];
 
-    THREE.ImageUtils.crossOrigin = 'Anonymous';
+
     for (var i = 0, l = texturePaths.length ; i < l; i++) {
         var m ={
             'name': texturePaths[i].replace('texture/','').replace('.png',''),
