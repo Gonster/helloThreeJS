@@ -900,7 +900,7 @@
         var tc = new THREE.Color();
         uniforms.topColor.value.copy( tc.setHSL( 0.6, 1, 0.75 ));
 
-        var skyGeo = new THREE.SphereGeometry( 6000, 32, 15 );
+        var skyGeo = new THREE.SphereGeometry( 4500, 32, 15 );
         var skyMat = new THREE.ShaderMaterial( {
             uniforms: uniforms,
             vertexShader: vertexShader,
