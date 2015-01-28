@@ -19,6 +19,26 @@
         return c;
     }
 
+    function getInternetExplorerVersion()
+    // Returns the version of Internet Explorer or a -1
+    // (indicating the use of another browser).
+    {
+      var rv = -1; // Return value assumes failure.
+      if (navigator.appName.indexOf("Internet Explorer")!=-1 || navigator.userAgent.toLowerCase().indexOf("trident")!=-1)
+      {
+        var ua = navigator.userAgent;
+        var re  = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
+        if (re.exec(ua) != null)
+          rv = parseFloat( RegExp.$1 );
+        else{
+            re  = new RegExp("rv:([0-9]{1,}[\.0-9]{0,})");
+            if (re.exec(ua) != null)
+              rv = parseFloat( RegExp.$1 );
+        }
+      }
+      return rv;
+    }
+
     function calcEventPagePosition(event){
         if ( event.pageX == null && event.clientX !=  null ) {  
             var doc = document.documentElement, body = document.body;  
@@ -489,9 +509,20 @@
             auxToggle = ! auxToggle;
         },
         'capture': function(){
-            imageCaptureDomElement.href = base.renderer.domElement.toDataURL();
-            imageCaptureDomElement.download = 'capture.png';
-            imageCaptureDomElement.click();
+            if(getInternetExplorerVersion() !== -1){
+                window.navigator.saveBlob = window.navigator.saveBlob || window.navigator.msSaveBlob;                
+                if (base.renderer.domElement.msToBlob && window.navigator.saveBlob) {
+                    window.navigator.saveBlob(base.renderer.domElement.msToBlob(), 'capture.png');
+                }
+                else {
+                  alert('failed to save image, please use other tools to capture it.');
+                } 
+            }
+            else{
+                imageCaptureDomElement.href = base.renderer.domElement.toDataURL();
+                imageCaptureDomElement.download = 'capture.png';
+                imageCaptureDomElement.click();
+            }
         },
         'clearAll': function(){
             if( !voxelAnimationManager.endFlag ){
