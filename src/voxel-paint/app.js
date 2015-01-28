@@ -19,6 +19,23 @@
         return c;
     }
 
+    function downloadCanvasImage(domElement, filename) {
+        if(getInternetExplorerVersion() !== -1){
+            window.navigator.saveBlob = window.navigator.saveBlob || window.navigator.msSaveBlob;                
+            if (domElement.msToBlob && window.navigator.saveBlob) {
+                window.navigator.saveBlob(domElement.msToBlob(), filename);
+            }
+            else {
+              alert('failed to save image, please use other tools to capture it.');
+            } 
+        }
+        else{
+            imageCaptureDomElement.href = domElement.toDataURL();
+            imageCaptureDomElement.download = filename;
+            imageCaptureDomElement.click();
+        } 
+    }
+
     function getInternetExplorerVersion()
     // Returns the version of Internet Explorer or a -1
     // (indicating the use of another browser).
@@ -509,20 +526,7 @@
             auxToggle = ! auxToggle;
         },
         'capture': function(){
-            if(getInternetExplorerVersion() !== -1){
-                window.navigator.saveBlob = window.navigator.saveBlob || window.navigator.msSaveBlob;                
-                if (base.renderer.domElement.msToBlob && window.navigator.saveBlob) {
-                    window.navigator.saveBlob(base.renderer.domElement.msToBlob(), 'capture.png');
-                }
-                else {
-                  alert('failed to save image, please use other tools to capture it.');
-                } 
-            }
-            else{
-                imageCaptureDomElement.href = base.renderer.domElement.toDataURL();
-                imageCaptureDomElement.download = 'capture.png';
-                imageCaptureDomElement.click();
-            }
+            downloadCanvasImage( base.renderer.domElement, 'capture.png' );
         },
         'clearAll': function(){
             if( !voxelAnimationManager.endFlag ){

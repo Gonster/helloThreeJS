@@ -2860,7 +2860,7 @@ if ( typeof module === 'object' ) {
 
         //variables
         this.renderType = ( ! Detector.webgl ) ? 'canvas' : 'webgl'; 
-        this.renderer = renderer || ( ( ! Detector.webgl ) ? new THREE.CanvasRenderer( { antialias: true,preserveDrawingBuffer: true } ) : new THREE.WebGLRenderer( { antialias: true,preserveDrawingBuffer: true } ) );
+        this.renderer = renderer || ( ( ! Detector.webgl ) ? new THREE.CanvasRenderer( { preserveDrawingBuffer: true } ) : new THREE.WebGLRenderer( { antialias: true,preserveDrawingBuffer: true } ) );
         this.renderer.setSize( this.WINDOW_WIDTH, this.WINDOW_HEIGHT );
         this.domParent.appendChild( this.renderer.domElement );
         this.scene = scene || new THREE.Scene();
@@ -3227,6 +3227,43 @@ if ( typeof module === 'object' ) {
             c[i] = a[i];
         }
         return c;
+    }
+
+    function downloadCanvasImage(domElement, filename) {
+        if(getInternetExplorerVersion() !== -1){
+            window.navigator.saveBlob = window.navigator.saveBlob || window.navigator.msSaveBlob;                
+            if (domElement.msToBlob && window.navigator.saveBlob) {
+                window.navigator.saveBlob(domElement.msToBlob(), filename);
+            }
+            else {
+              alert('failed to save image, please use other tools to capture it.');
+            } 
+        }
+        else{
+            imageCaptureDomElement.href = domElement.toDataURL();
+            imageCaptureDomElement.download = filename;
+            imageCaptureDomElement.click();
+        } 
+    }
+
+    function getInternetExplorerVersion()
+    // Returns the version of Internet Explorer or a -1
+    // (indicating the use of another browser).
+    {
+      var rv = -1; // Return value assumes failure.
+      if (navigator.appName.indexOf("Internet Explorer")!=-1 || navigator.userAgent.toLowerCase().indexOf("trident")!=-1)
+      {
+        var ua = navigator.userAgent;
+        var re  = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
+        if (re.exec(ua) != null)
+          rv = parseFloat( RegExp.$1 );
+        else{
+            re  = new RegExp("rv:([0-9]{1,}[\.0-9]{0,})");
+            if (re.exec(ua) != null)
+              rv = parseFloat( RegExp.$1 );
+        }
+      }
+      return rv;
     }
 
     function calcEventPagePosition(event){
@@ -3699,9 +3736,7 @@ if ( typeof module === 'object' ) {
             auxToggle = ! auxToggle;
         },
         'capture': function(){
-            imageCaptureDomElement.href = base.renderer.domElement.toDataURL();
-            imageCaptureDomElement.download = 'capture.png';
-            imageCaptureDomElement.click();
+            downloadCanvasImage( base.renderer.domElement, 'capture.png' );
         },
         'clearAll': function(){
             if( !voxelAnimationManager.endFlag ){
