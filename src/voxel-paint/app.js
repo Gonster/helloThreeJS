@@ -1,6 +1,23 @@
 /**
 *@author Gonster  ( gonster.github.io )
 */
+        var vertexShader ='varying vec3 vWorldPosition;'
+            +'void main() {'
+            +'   vec4 worldPosition = modelMatrix * vec4( position, 1.0 );'
+            +'   vWorldPosition = worldPosition.xyz;'
+            +'    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );'
+            +'}';
+        
+        var fragmentShader = 'uniform vec3 topColor;'
+            +'uniform vec3 bottomColor;'
+            +'uniform float offset;'
+            +'uniform float exponent;'
+            +'varying vec3 vWorldPosition;'
+            +'void main() {'
+            +    'float h = normalize( vWorldPosition + offset ).y;'
+            +    'gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );'
+            +'}';
+        
 
 (function( window, document, Base, THREE, Detector ){
     //image download dom element
@@ -445,7 +462,7 @@
             var currentBoxMaterial = currentBoxMaterialParent.data;
             var currentCube = mesh || new THREE.Mesh( currentBoxGeometry, currentBoxMaterial );
             currentCube.castShadow = true;
-            currentCube.receiveShadow = true;
+            // currentCube.receiveShadow = true;
             intersect ? setMeshPositionToFitTheGrid( currentCube, intersect ) : currentCube.position.set(xyz[0], xyz[1], xyz[2]);
             (!notVisibleInTheScene) || (currentCube.visible = false);
             base.scene.add( currentCube );
@@ -521,7 +538,7 @@
         }
     ];
 
-    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width, 2, 2, 2  );
+    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width, 1, 1, 1  );
     var geometries = [
         {
             'name': 'default',
@@ -842,6 +859,7 @@
         basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
         basePlaneTexture.repeat.set(24, 24);
         basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture} );        
+        // basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33} );        
         basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
         basePlaneMesh.receiveShadow = true;
         basePlaneMesh.material.side = THREE.DoubleSide;
@@ -869,6 +887,29 @@
 
         hemisphereLight = new THREE.HemisphereLight( 0xeeeeee, 0x303030, 0.95 );
         base.scene.add( hemisphereLight );
+
+        // SKYDOME
+
+
+        var uniforms = {
+            topColor:    { type: "c", value: new THREE.Color( 0x0077ff ) },
+            bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
+            offset:      { type: "f", value: 400 },
+            exponent:    { type: "f", value: 0.6 }
+        }
+        var tc = new THREE.Color();
+        uniforms.topColor.value.copy( tc.setHSL( 0.6, 1, 0.75 ));
+
+        var skyGeo = new THREE.SphereGeometry( 6000, 32, 15 );
+        var skyMat = new THREE.ShaderMaterial( {
+            uniforms: uniforms,
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            side: THREE.BackSide
+        } );
+
+        var sky = new THREE.Mesh( skyGeo, skyMat );
+        base.scene.add( sky );
 
         //helper cube
         helperCube = new THREE.Mesh( currentBoxGeometry, currentHelperBoxMaterial );
