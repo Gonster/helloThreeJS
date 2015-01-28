@@ -164,10 +164,10 @@
                     var currentData = loadDataArray[i].split(',');
                     switch(i){
                         case 0:
-                            base.controls.target.set(Number(currentData[0]), Number(currentData[1]), Number(currentData[2]));
+                            base.controls.target.set(Number(currentData[0]) || 0, Number(currentData[1]) || 0, Number(currentData[2]) || 0);
                             break;
                         case 1:
-                            base.controls.object.position.set(Number(currentData[0]), Number(currentData[1]), Number(currentData[2]));
+                            base.controls.object.position.set(Number(currentData[0]) || 0, Number(currentData[1]) || 0, Number(currentData[2]) || 0);
                             break;
                     }
                 }
@@ -183,29 +183,32 @@
             if(loadDataArray.length > 0){
                 for(var i = 0, l = loadDataArray.length; i < l; i++){
                     var currentData = loadDataArray[i];
-                    switch(i){
-                        case 0:
-                            texturesButton.image = Number(currentData);
-                            break;
-                        case 1:
-                            texturesButton.color = Number(currentData);
-                            break;
-                        case 2:
-                            if(Number(currentData) === 0){
-                                document.getElementById('imageTexture').parentElement.click();
-                            }
-                            else{
-                                document.getElementById('colorTexture').parentElement.click();
-                            }
-                            break;
-                        case 3:
-                            if(Number(currentData) === 0){
-                                document.getElementById('normalSidebar').parentElement.click();
-                            }
-                            else{
-                                document.getElementById('minSidebar').parentElement.click();
-                            }
-                            break;
+                    if(currentData === '' || Number(currentData) === NaN) {}
+                    else{
+                        switch(i){
+                            case 0:
+                                texturesButton.image = Number(currentData) || 0;
+                                break;
+                            case 1:
+                                texturesButton.color = Number(currentData) || 0;
+                                break;
+                            case 2:
+                                if(Number(currentData) === 1){
+                                    document.getElementById('colorTexture').parentElement.click();
+                                }
+                                else{
+                                    document.getElementById('imageTexture').parentElement.click();
+                                }
+                                break;
+                            case 3:
+                                if(Number(currentData) === 1){
+                                    document.getElementById('minSidebar').parentElement.click();
+                                }
+                                else{
+                                    document.getElementById('normalSidebar').parentElement.click();
+                                }
+                                break;
+                        }
                     }
                 }
             }
@@ -1034,7 +1037,12 @@
                 break;
             }
         }
+        sidebarParams['sidebarResize'] = 1;
     }
+    else{
+        sidebarParams['sidebarResize'] = 0;
+    }
+
     GoUI.Utils.domCreationDirector(UI_JSON);
 
     actionRecorder.updateDom();
