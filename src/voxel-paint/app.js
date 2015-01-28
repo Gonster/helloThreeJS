@@ -521,7 +521,7 @@
         }
     ];
 
-    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width  );
+    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width, 2, 2, 2  );
     var geometries = [
         {
             'name': 'default',
@@ -836,14 +836,15 @@
         // base.scene.add( gridHelper );
 
         //base plane
-        basePlaneGeometry = new THREE.PlaneBufferGeometry( DEFAULT_PLANE.width, DEFAULT_PLANE.height );
+        basePlaneGeometry = new THREE.PlaneBufferGeometry( DEFAULT_PLANE.width, DEFAULT_PLANE.height, 32, 32);
         basePlaneGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
         var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grass.png');
         basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
-        basePlaneTexture.repeat.set(15, 15);
+        basePlaneTexture.repeat.set(24, 24);
         basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture} );        
         basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
         basePlaneMesh.receiveShadow = true;
+        basePlaneMesh.material.side = THREE.DoubleSide;
         // basePlaneMesh.visible = false;
         base.scene.add( basePlaneMesh );
         allIntersectableObjects.push( basePlaneMesh );
