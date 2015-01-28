@@ -842,7 +842,6 @@
         basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
         basePlaneTexture.repeat.set(15, 15);
         basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture} );        
-        basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33} );
         basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
         basePlaneMesh.receiveShadow = true;
         // basePlaneMesh.visible = false;
