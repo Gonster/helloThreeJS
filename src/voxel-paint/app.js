@@ -489,30 +489,38 @@
     //constants
 
 
+
+    var DRAW_VOXEL_SAME_CUBE_DEFINITION = 3;
+    THREE.ImageUtils.crossOrigin = 'Anonymous';
+    var base;
+
     var DEFAULT_BOX = {
         'width': 50.0
     };
-    var DEFAULT_PLANE = {
-        'width': 10000.0,
-        'height': 10000.0
-    }
 
     var LIGHT_PARAMS = {
         'webgl': {
             'ambientLightColor': 0x303030,
             'directionalLightDensity': 0.8,
-            'basePlaneSegments': 1
+            'basePlaneSegments': 2,
+            'basePlaneWidth': 50000.0,
+            'basePlaneTextureRepeat': 256,
+            'fogNear': 8000,
+            'fogFar': 24000,
+            'sphereRadius': 25000
         },
         'canvas': {
             'ambientLightColor': 0x909090,
             'directionalLightDensity': 1,
-            'basePlaneSegments': 32
+            'basePlaneSegments': 32,
+            'basePlaneWidth': 6000.0,
+            'basePlaneTextureRepeat': 16,
+            'fogNear': 2000,
+            'fogFar': 3000,
+            'sphereRadius': 3000
         }
     }
 
-    var DRAW_VOXEL_SAME_CUBE_DEFINITION = 3;
-    THREE.ImageUtils.crossOrigin = 'Anonymous';
-    var base;
     var basePlaneGeometry, basePlaneMesh, basePlaneMaterial;
     var reloadFlag = 0;
 
@@ -603,12 +611,116 @@
     var ambientLight, directionalLight, hemisphereLight, spotLight;
     var mouseOnScreenVector, mouseState = [0,0,0];
     var raycaster;
+    var fog;
 
     var voxelAnimationManager = new VoxelAnimationManager();
     var voxelPaintStorageManager = new VoxelPaintStorageManager(false);
     var actionRecorder =new ActionRecorder();
     var pen = new Pen();
 
+
+    function subInit() {
+        //grid
+        gridHelper = new THREE.GridHelper( LIGHT_PARAMS[base.renderType].basePlaneWidth / 2.0, DEFAULT_BOX.width );
+        // base.scene.add( gridHelper );
+
+        //base plane
+        basePlaneGeometry = new THREE.PlaneBufferGeometry( 
+            LIGHT_PARAMS[base.renderType].basePlaneWidth, 
+            LIGHT_PARAMS[base.renderType].basePlaneWidth, 
+            LIGHT_PARAMS[base.renderType].basePlaneSegments, 
+            LIGHT_PARAMS[base.renderType].basePlaneSegments
+        );
+        basePlaneGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
+        var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grass.png');
+        basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
+        basePlaneTexture.repeat.set(
+            LIGHT_PARAMS[base.renderType].basePlaneTextureRepeat, 
+            LIGHT_PARAMS[base.renderType].basePlaneTextureRepeat
+        );
+        basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture, emissive: 0xcccccc} );        
+        // basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33} );        
+        basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
+        basePlaneMesh.receiveShadow = true;
+        basePlaneMesh.material.side = THREE.DoubleSide;
+        // basePlaneMesh.visible = false;
+        base.scene.add( basePlaneMesh );
+        allIntersectableObjects.push( basePlaneMesh );
+
+        //light
+        ambientLight = new THREE.AmbientLight( LIGHT_PARAMS[base.renderType].ambientLightColor );
+        base.scene.add( ambientLight );
+
+        directionalLight = new THREE.DirectionalLight( 0xeeeeee, LIGHT_PARAMS[base.renderType].directionalLightDensity );
+        // directionalLight.shadowCameraVisible = true;
+        directionalLight.position.set( 0, 6000, 5000 );
+        directionalLight.target.position.set( 0, 0, 0 );
+        directionalLight.castShadow = true;
+        directionalLight.shadowCameraNear = base.camera.near;
+        directionalLight.shadowCameraFar = base.camera.far;
+        directionalLight.shadowCameraFov = base.camera.fov;
+        directionalLight.shadowBias = 0.0000001;
+        directionalLight.shadowDarkness = 0.4;
+        directionalLight.shadowMapWidth = 1024;
+        directionalLight.shadowMapHeight = 1024;
+        base.scene.add( directionalLight );
+
+        hemisphereLight = new THREE.HemisphereLight( 0xffffff, 0x606060, 1 );
+        base.scene.add( hemisphereLight );
+
+        // SKYDOME
+        var uniforms = {
+            topColor:    { type: "c", value: new THREE.Color( 0x3377ff ) },
+            bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
+            offset:      { type: "f", value: 400 },
+            exponent:    { type: "f", value: 0.8 }
+        }
+        var tc = new THREE.Color();
+        uniforms.topColor.value.copy( tc.setHSL( 0.6, 1, 0.75 ));
+
+        var skyGeo = new THREE.SphereGeometry( LIGHT_PARAMS[base.renderType].sphereRadius , 32, 15 );
+        var skyMat = new THREE.ShaderMaterial( {
+            uniforms: uniforms,
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            side: THREE.BackSide
+        } );
+
+        var sky = new THREE.Mesh( skyGeo, skyMat );
+        base.scene.add( sky );
+
+        //helper cube
+        helperCube = new THREE.Mesh( currentBoxGeometry, currentHelperBoxMaterial );
+        helperCube.position.set( DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0 );
+        base.scene.add( helperCube );
+
+        //current cube
+        currentCube = new THREE.Mesh( currentBoxGeometry, currentBoxMaterial );
+
+        //intersection detector
+        raycaster = new THREE.Raycaster();
+        mouseOnScreenVector = new THREE.Vector2();
+
+        //fog
+        fog = new THREE.Fog(0xeeffee, LIGHT_PARAMS[base.renderType].fogNear, LIGHT_PARAMS[base.renderType].fogFar);
+        base.scene.fog = fog;
+
+        base.renderer.setClearColor( 0xf0f0f0 );
+        base.renderer.shadowMapEnabled = true;
+        base.renderer.shadowMapType = THREE.PCFShadowMap;
+        base.renderer.gammaInput = true;
+        base.renderer.gammaOutput = true;
+
+        //listeners
+        window.addEventListener('unload', onWindowBeforeUnload, false );
+        window.addEventListener('reload', onWindowReload, false );
+        base.renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+        base.renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
+        base.renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
+        document.addEventListener( 'keydown', onDocumentKeyDown, false );
+        document.addEventListener( 'keyup', onDocumentKeyUp, false );
+        autoSaveIntervalHandler = setInterval(onWindowBeforeUnload, autoSaveInterval);
+    }
 
 
 
@@ -847,101 +959,6 @@
                 break;
         }
     }
-
-    function subInit() {
-        //grid
-        // gridHelper = new THREE.GridHelper( DEFAULT_PLANE.width / 2.0, DEFAULT_BOX.width );
-        // base.scene.add( gridHelper );
-
-        //base plane
-        basePlaneGeometry = new THREE.PlaneBufferGeometry( DEFAULT_PLANE.width, DEFAULT_PLANE.height, LIGHT_PARAMS[base.renderType].basePlaneSegments, LIGHT_PARAMS[base.renderType].basePlaneSegments);
-        basePlaneGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
-        var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grass.png');
-        basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
-        basePlaneTexture.repeat.set(24, 24);
-        basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture} );        
-        // basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33} );        
-        basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
-        basePlaneMesh.receiveShadow = true;
-        basePlaneMesh.material.side = THREE.DoubleSide;
-        // basePlaneMesh.visible = false;
-        base.scene.add( basePlaneMesh );
-        allIntersectableObjects.push( basePlaneMesh );
-
-        //light
-        ambientLight = new THREE.AmbientLight( LIGHT_PARAMS[base.renderType].ambientLightColor );
-        base.scene.add( ambientLight );
-
-        directionalLight = new THREE.DirectionalLight( 0xeeeeee, LIGHT_PARAMS[base.renderType].directionalLightDensity );
-        // directionalLight.shadowCameraVisible = true;
-        directionalLight.position.set( 0, 6000, 5000 );
-        directionalLight.target.position.set( 0, 0, 0 );
-        directionalLight.castShadow = true;
-        directionalLight.shadowCameraNear = base.camera.near;
-        directionalLight.shadowCameraFar = base.camera.far;
-        directionalLight.shadowCameraFov = base.camera.fov;
-        directionalLight.shadowBias = 0.00001;
-        directionalLight.shadowDarkness = 0.4;
-        directionalLight.shadowMapWidth = 1024;
-        directionalLight.shadowMapHeight = 1024;
-        base.scene.add( directionalLight );
-
-        hemisphereLight = new THREE.HemisphereLight( 0xffffff, 0x606060, 1 );
-        base.scene.add( hemisphereLight );
-
-        // SKYDOME
-
-
-        var uniforms = {
-            topColor:    { type: "c", value: new THREE.Color( 0x0077ff ) },
-            bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
-            offset:      { type: "f", value: 400 },
-            exponent:    { type: "f", value: 0.6 }
-        }
-        var tc = new THREE.Color();
-        uniforms.topColor.value.copy( tc.setHSL( 0.6, 1, 0.75 ));
-
-        var skyGeo = new THREE.SphereGeometry( 100000, 32, 15 );
-        var skyMat = new THREE.ShaderMaterial( {
-            uniforms: uniforms,
-            vertexShader: vertexShader,
-            fragmentShader: fragmentShader,
-            side: THREE.BackSide
-        } );
-
-        var sky = new THREE.Mesh( skyGeo, skyMat );
-        base.scene.add( sky );
-
-        //helper cube
-        helperCube = new THREE.Mesh( currentBoxGeometry, currentHelperBoxMaterial );
-        helperCube.position.set( DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0 );
-        base.scene.add( helperCube );
-
-        //current cube
-        currentCube = new THREE.Mesh( currentBoxGeometry, currentBoxMaterial );
-
-        //intersection detector
-        raycaster = new THREE.Raycaster();
-        mouseOnScreenVector = new THREE.Vector2();
-
-        base.renderer.setClearColor( 0xf0f0f0 );
-        base.renderer.shadowMapEnabled = true;
-        base.renderer.shadowMapType = THREE.PCFShadowMap;
-        base.renderer.gammaInput = true;
-        base.renderer.gammaOutput = true;
-
-        //listeners
-        window.addEventListener('unload', onWindowBeforeUnload, false );
-        window.addEventListener('reload', onWindowReload, false );
-        base.renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
-        base.renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
-        base.renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
-        document.addEventListener( 'keydown', onDocumentKeyDown, false );
-        document.addEventListener( 'keyup', onDocumentKeyUp, false );
-        autoSaveIntervalHandler = setInterval(onWindowBeforeUnload, autoSaveInterval);
-    }
-
-
 
     function animate() {
         requestAnimationFrame( animate );
