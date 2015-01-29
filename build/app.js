@@ -3211,6 +3211,23 @@ if ( typeof module === 'object' ) {
 })();/**
 *@author Gonster  ( gonster.github.io )
 */
+        var vertexShader ='varying vec3 vWorldPosition;'
+            +'void main() {'
+            +'   vec4 worldPosition = modelMatrix * vec4( position, 1.0 );'
+            +'   vWorldPosition = worldPosition.xyz;'
+            +'    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );'
+            +'}';
+        
+        var fragmentShader = 'uniform vec3 topColor;'
+            +'uniform vec3 bottomColor;'
+            +'uniform float offset;'
+            +'uniform float exponent;'
+            +'varying vec3 vWorldPosition;'
+            +'void main() {'
+            +    'float h = normalize( vWorldPosition + offset ).y;'
+            +    'gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );'
+            +'}';
+        
 
 (function( window, document, Base, THREE, Detector ){
     //image download dom element
@@ -3655,7 +3672,7 @@ if ( typeof module === 'object' ) {
             var currentBoxMaterial = currentBoxMaterialParent.data;
             var currentCube = mesh || new THREE.Mesh( currentBoxGeometry, currentBoxMaterial );
             currentCube.castShadow = true;
-            currentCube.receiveShadow = true;
+            // currentCube.receiveShadow = true;
             intersect ? setMeshPositionToFitTheGrid( currentCube, intersect ) : currentCube.position.set(xyz[0], xyz[1], xyz[2]);
             (!notVisibleInTheScene) || (currentCube.visible = false);
             base.scene.add( currentCube );
@@ -3703,9 +3720,9 @@ if ( typeof module === 'object' ) {
     }
 
     var DRAW_VOXEL_SAME_CUBE_DEFINITION = 3;
-
+    THREE.ImageUtils.crossOrigin = 'Anonymous';
     var base;
-    var basePlaneGeometry, basePlaneMesh;
+    var basePlaneGeometry, basePlaneMesh, basePlaneMaterial;
     var reloadFlag = 0;
 
     var autoSaveInterval = 120*1000;
@@ -3731,7 +3748,7 @@ if ( typeof module === 'object' ) {
         }
     ];
 
-    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width  );
+    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width, 1, 1, 1  );
     var geometries = [
         {
             'name': 'default',
@@ -4042,14 +4059,21 @@ if ( typeof module === 'object' ) {
 
     function subInit() {
         //grid
-        gridHelper = new THREE.GridHelper( DEFAULT_PLANE.width / 2.0, DEFAULT_BOX.width );
-        base.scene.add( gridHelper );
+        // gridHelper = new THREE.GridHelper( DEFAULT_PLANE.width / 2.0, DEFAULT_BOX.width );
+        // base.scene.add( gridHelper );
 
         //base plane
-        basePlaneGeometry = new THREE.PlaneBufferGeometry( DEFAULT_PLANE.width, DEFAULT_PLANE.height );
+        basePlaneGeometry = new THREE.PlaneBufferGeometry( DEFAULT_PLANE.width, DEFAULT_PLANE.height, 32, 32);
         basePlaneGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
-        basePlaneMesh = new THREE.Mesh( basePlaneGeometry );
-        basePlaneMesh.visible = false;
+        var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grass.png');
+        basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
+        basePlaneTexture.repeat.set(24, 24);
+        basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture} );        
+        // basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33} );        
+        basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
+        basePlaneMesh.receiveShadow = true;
+        basePlaneMesh.material.side = THREE.DoubleSide;
+        // basePlaneMesh.visible = false;
         base.scene.add( basePlaneMesh );
         allIntersectableObjects.push( basePlaneMesh );
 
@@ -4073,6 +4097,29 @@ if ( typeof module === 'object' ) {
 
         hemisphereLight = new THREE.HemisphereLight( 0xeeeeee, 0x303030, 0.95 );
         base.scene.add( hemisphereLight );
+
+        // SKYDOME
+
+
+        var uniforms = {
+            topColor:    { type: "c", value: new THREE.Color( 0x0077ff ) },
+            bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
+            offset:      { type: "f", value: 400 },
+            exponent:    { type: "f", value: 0.6 }
+        }
+        var tc = new THREE.Color();
+        uniforms.topColor.value.copy( tc.setHSL( 0.6, 1, 0.75 ));
+
+        var skyGeo = new THREE.SphereGeometry( 4500, 32, 15 );
+        var skyMat = new THREE.ShaderMaterial( {
+            uniforms: uniforms,
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            side: THREE.BackSide
+        } );
+
+        var sky = new THREE.Mesh( skyGeo, skyMat );
+        base.scene.add( sky );
 
         //helper cube
         helperCube = new THREE.Mesh( currentBoxGeometry, currentHelperBoxMaterial );
@@ -4385,7 +4432,7 @@ if ( typeof module === 'object' ) {
         'texture/slats.png'
     ];
 
-    THREE.ImageUtils.crossOrigin = 'Anonymous';
+
     for (var i = 0, l = texturePaths.length ; i < l; i++) {
         var m ={
             'name': texturePaths[i].replace('texture/','').replace('.png',''),
