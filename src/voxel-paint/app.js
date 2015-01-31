@@ -291,7 +291,7 @@
             if(loadDataArray.length > 0){
                 for(var i = 0, l = loadDataArray.length; i < l; i++){
                     var currentData = loadDataArray[i];
-                    if(currentData === '' || Number(currentData) === NaN) {}
+                    if(currentData === '' || isNaN(Number(currentData)) ) {}
                     else{
                         switch(i){
                             case 0:
