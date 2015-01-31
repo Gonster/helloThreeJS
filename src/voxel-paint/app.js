@@ -172,6 +172,7 @@
                     case this.storageKeys.meshes:
                     case undefined:
                         if( ! this.isLoadingBoxEnd && actionRecorder.currentActionIndex < 0) return;
+                        save += DEFAULT_BOX.width + ':';
                         for (var i = 0, l = cubeMeshes.length; i < l; i++) {
                             save += cubeMeshes[i].geo.id.replace('geo','') + ',';
                             save += cubeMeshes[i].material.id.replace('texture','') + ',';
@@ -195,9 +196,22 @@
         'loadMeshes': function loadMeshes(key, loadType, animation){
             this.isLoadingBoxEnd = false;
             var loadDataArray = []; 
+            var boxWidth = DEFAULT_BOX.width; 
             {
                 var load = this.load(key);
-                if(load) loadDataArray = load.split(';');
+                if(load) {
+                    var array = load.split(':');
+                    if(array){
+                        if(array.length === 2){
+                            boxWidth = ( Number(array[0]) || 50 ) / DEFAULT_BOX.width;
+                            loadDataArray = array[1].split(';');
+                        }
+                        else{
+                            boxWidth = 50;
+                            loadDataArray = array[0].split(';');
+                        }
+                    }
+                }
             }
             if(loadDataArray.length > 0){
                 switch(loadType){
@@ -206,7 +220,15 @@
                             var currentData = loadDataArray[i].split(',');
                             if( currentData.length > 2 ){
                                 //generate all meshes    visible
-                                pen.draw( Number(currentData[0]), Number(currentData[1]), [Number(currentData[2]), Number(currentData[3]), Number(currentData[4])]);
+                                pen.draw( 
+                                    Number(currentData[0]), 
+                                    Number(currentData[1]), 
+                                    [
+                                        Number(currentData[2]) / boxWidth, 
+                                        Number(currentData[3]) / boxWidth, 
+                                        Number(currentData[4]) / boxWidth
+                                    ]
+                                );
                             }
                         }
                         this.isLoadingBoxEnd = true;
@@ -217,7 +239,18 @@
                             var currentData = loadDataArray[i].split(',');
                             if( currentData.length > 2 ){
                                 //generate all meshes    invisible
-                                pen.draw( Number(currentData[0]), Number(currentData[1]), [Number(currentData[2]), Number(currentData[3]), Number(currentData[4])], undefined, undefined, true);
+                                pen.draw( 
+                                    Number(currentData[0]), 
+                                    Number(currentData[1]), 
+                                    [
+                                        Number(currentData[2]) / boxWidth, 
+                                        Number(currentData[3]) / boxWidth, 
+                                        Number(currentData[4]) / boxWidth
+                                    ], 
+                                    undefined, 
+                                    undefined, 
+                                    true
+                                );
                             }
                         }
                         voxelAnimationManager.begin(animation, cubeMeshes);
@@ -409,7 +442,9 @@
     };
 
 
-    var Pen = function(){};
+    var Pen = function(){        
+        this.drawFlag = false;
+    };
 
     function calculateIntersectResult(event) {
         calcEventPagePosition(event);
@@ -465,8 +500,10 @@
             currentCube.receiveShadow = true;
             intersect ? setMeshPositionToFitTheGrid( currentCube, intersect ) : currentCube.position.set(xyz[0], xyz[1], xyz[2]);
             (!notVisibleInTheScene) || (currentCube.visible = false);
+
             base.scene.add( currentCube );
             allIntersectableObjects.push( currentCube );
+
             cubeMeshes.push( { 'meshObject': currentCube,  'geo': currentBoxGeometryParent, 'material': currentBoxMaterialParent } );
             return cubeMeshes[cubeMeshes.length - 1];
         },
@@ -498,26 +535,28 @@
         'width': 50.0
     };
 
+    var boxScale = DEFAULT_BOX.width / 50;
+
     var LIGHT_PARAMS = {
         'webgl': {
             'ambientLightColor': 0x303030,
             'directionalLightDensity': 0.8,
             'basePlaneSegments': 2,
-            'basePlaneWidth': 50000.0,
-            'basePlaneTextureRepeat': 256,
-            'fogNear': 8000,
-            'fogFar': 24000,
-            'sphereRadius': 25000
+            'basePlaneWidth': 50000.0 * boxScale,
+            'basePlaneTextureRepeat': 200,
+            'fogNear': 8000 * boxScale,
+            'fogFar': 25000 * boxScale,
+            'sphereRadius': 25000 * boxScale
         },
         'canvas': {
             'ambientLightColor': 0x909090,
             'directionalLightDensity': 1,
             'basePlaneSegments': 32,
-            'basePlaneWidth': 6000.0,
+            'basePlaneWidth': 6000.0 * boxScale,
             'basePlaneTextureRepeat': 16,
-            'fogNear': 2000,
-            'fogFar': 3000,
-            'sphereRadius': 3000
+            'fogNear': 2000 * boxScale,
+            'fogFar': 3000 * boxScale,
+            'sphereRadius': 3000 * boxScale
         }
     }
 
@@ -569,7 +608,7 @@
         'texturesType': 0,
         'toggleAux': function(){
             (sidebarParams['toolsType'] === 1) || (helperCube.visible = ! helperCube.visible);
-            gridHelper.visible = ! gridHelper.visible;
+            // gridHelper.visible = ! gridHelper.visible;
             auxToggle = ! auxToggle;
         },
         'capture': function(){
@@ -621,7 +660,7 @@
 
     function subInit() {
         //grid
-        gridHelper = new THREE.GridHelper( LIGHT_PARAMS[base.renderType].basePlaneWidth / 2.0, DEFAULT_BOX.width );
+        // gridHelper = new THREE.GridHelper( LIGHT_PARAMS[base.renderType].basePlaneWidth / 2.0, DEFAULT_BOX.width );
         // base.scene.add( gridHelper );
 
         //base plane
@@ -632,13 +671,14 @@
             LIGHT_PARAMS[base.renderType].basePlaneSegments
         );
         basePlaneGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
-        var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grass.png');
+        var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grasslight-big.jpg');
+        // var skyTexture = THREE.ImageUtils.loadTexture('texture/sky.jpg');
         basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
         basePlaneTexture.repeat.set(
             LIGHT_PARAMS[base.renderType].basePlaneTextureRepeat, 
             LIGHT_PARAMS[base.renderType].basePlaneTextureRepeat
         );
-        basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture, emissive: 0xcccccc} );        
+        basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture, bumpMap: basePlaneTexture, emissive: 0xffffff} );        
         // basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33} );        
         basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
         basePlaneMesh.receiveShadow = true;
@@ -659,10 +699,14 @@
         directionalLight.shadowCameraNear = base.camera.near;
         directionalLight.shadowCameraFar = base.camera.far;
         directionalLight.shadowCameraFov = base.camera.fov;
-        directionalLight.shadowBias = 0.0000001;
+        directionalLight.shadowCameraTop = -1000;
+        directionalLight.shadowCameraLeft = -1000;
+        directionalLight.shadowCameraBottom = 1000;
+        directionalLight.shadowCameraRight = 1000;
+        directionalLight.shadowBias = .000020;
         directionalLight.shadowDarkness = 0.4;
-        directionalLight.shadowMapWidth = 1024;
-        directionalLight.shadowMapHeight = 1024;
+        directionalLight.shadowMapWidth = 2048;
+        directionalLight.shadowMapHeight = 2048;
         base.scene.add( directionalLight );
 
         hemisphereLight = new THREE.HemisphereLight( 0xffffff, 0x606060, 1 );
@@ -670,7 +714,7 @@
 
         // SKYDOME
         var uniforms = {
-            topColor:    { type: "c", value: new THREE.Color( 0x3377ff ) },
+            topColor:    { type: "c", value: new THREE.Color( 0x1144ff ) },
             bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
             offset:      { type: "f", value: 400 },
             exponent:    { type: "f", value: 0.8 }
@@ -707,7 +751,8 @@
 
         base.renderer.setClearColor( 0xf0f0f0 );
         base.renderer.shadowMapEnabled = true;
-        base.renderer.shadowMapType = THREE.PCFShadowMap;
+        base.renderer.shadowMapType = THREE.PCFSoftShadowMap;
+        base.renderer.shadowMapCullFace = THREE.CullFaceBack;
         base.renderer.gammaInput = true;
         base.renderer.gammaOutput = true;
 
@@ -730,6 +775,7 @@
         if( intersects.length > 0 ){
             var intersect = intersects[0];
             var currentToolsType = sidebarParams['toolsType'];
+
             var sameVoxelFlag = false;
             var aioLen = allIntersectableObjects.length;
             if(aioLen && intersect.object !== basePlaneMesh ){
@@ -743,9 +789,12 @@
             //add a solid cube
             if(currentToolsType === 0){
                 if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
-                var mesh = pen.draw(currentBoxGeometryParentIndex, currentBoxMaterialParentIndex, undefined, intersect);
-                if(isMouseMoving) actionRecorder.appendObjectToCurrentAction(mesh);
-                else actionRecorder.addAction('draw', mesh);
+                   
+                    var mesh = pen.draw(currentBoxGeometryParentIndex, currentBoxMaterialParentIndex, undefined, intersect);
+                    if(isMouseMoving) actionRecorder.appendObjectToCurrentAction(mesh);
+                    else actionRecorder.addAction('draw', mesh);      
+                    //instant render   grant next draw right              
+                    base.renderer.render( base.scene, base.camera );
                 return;
             }
 
@@ -791,14 +840,28 @@
         }
     }
 
+    var movingDrawLock = 0;
     function onDocumentMouseMove(event) {
         event.preventDefault();
         var intersects;
         var currentToolsType;
         
-        if( mouseState[0] === 1 ) {
-            intersects = calculateIntersectResult(event);
-            drawVoxel(intersects, event.ctrlKey, event.ctrlKey, true);
+        if( mouseState[0] === 1) {
+            try{
+                if(movingDrawLock === 1) {
+                    movingDrawLock = 0;
+                    return;
+                }
+                movingDrawLock = 1;
+                intersects = calculateIntersectResult(event);
+                drawVoxel(intersects, event.ctrlKey, event.ctrlKey, true);
+            }
+            catch(e){
+                console.warn('draw/erase failed');
+            }
+            finally{
+                movingDrawLock = 0;
+            }
         }
         else{
             currentToolsType = sidebarParams['toolsType'];
