@@ -207,7 +207,7 @@
                             loadDataArray = array[1].split(';');
                         }
                         else{
-                            boxWidth = 50;
+                            boxWidth = 50 / DEFAULT_BOX.width;
                             loadDataArray = array[0].split(';');
                         }
                     }
