@@ -330,6 +330,7 @@
     var ActionRecorder = function () {
         this.currentActionIndex = -1;
         this.actionArray = [];
+        this.isCurrentActionAlive = undefined;
     };
 
     ActionRecorder.prototype = {
@@ -402,7 +403,7 @@
         'addAction': function(actionType, mesh) {
             //截断
             this.actionArray.length = (this.currentActionIndex + 1 > -1) ? this.currentActionIndex + 1 : 0
-
+            this.isCurrentActionAlive = true;
             var action = {
                 'type': actionType,
                 'meshes': mesh
@@ -411,8 +412,14 @@
             this.currentActionIndex++;
             this.updateDom();
         },
-        'appendObjectToCurrentAction': function(mesh) {
+        'appendObjectToCurrentAction': function(actionType, mesh) {
             var currentAction = this.actionArray[this.currentActionIndex];
+
+            if( this.isCurrentActionAlive !== true){
+                this.addAction(actionType, mesh);
+                return;
+            }
+
             if(currentAction.meshes === undefined) {
                 currentAction.meshes = mesh;
             }
@@ -623,7 +630,7 @@
             actionRecorder.addAction('erase', mesh);
             for (var i = 0, l = cubeMeshes.length; i < l; i++) {
                 mesh = pen.erase(cubeMeshes[0].meshObject);
-                actionRecorder.appendObjectToCurrentAction(mesh);
+                actionRecorder.appendObjectToCurrentAction('erase', mesh);
             };
         },
         'undo': function(){
@@ -791,7 +798,7 @@
                 if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
                    
                     var mesh = pen.draw(currentBoxGeometryParentIndex, currentBoxMaterialParentIndex, undefined, intersect);
-                    if(isMouseMoving) actionRecorder.appendObjectToCurrentAction(mesh);
+                    if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('draw', mesh);
                     else actionRecorder.addAction('draw', mesh);      
                     //instant render   grant next draw right              
                     base.renderer.render( base.scene, base.camera );
@@ -802,7 +809,7 @@
             if(currentToolsType === 1 && isEraseWhileMoving){
                 if( intersect.object !== basePlaneMesh ) {
                     var mesh = pen.erase(intersect.object);
-                    if(isMouseMoving) actionRecorder.appendObjectToCurrentAction(mesh);
+                    if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('erase', mesh);
                     else actionRecorder.addAction('erase', mesh);
                     return;
                 }
@@ -977,6 +984,7 @@
                 break;
             case 0:
                 mouseState[0] = 0;
+                actionRecorder.isCurrentActionAlive = false;
                 break;
             case 1:
                 mouseState[1] = 0;
