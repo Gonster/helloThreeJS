@@ -699,21 +699,31 @@
         base.scene.add( ambientLight );
 
         directionalLight = new THREE.DirectionalLight( 0xeeeeee, LIGHT_PARAMS[base.renderType].directionalLightDensity );
-        // directionalLight.shadowCameraVisible = true;
         directionalLight.position.set( 0, 6000, 5000 );
         directionalLight.target.position.set( 0, 0, 0 );
         directionalLight.castShadow = true;
         directionalLight.shadowCameraNear = base.camera.near;
         directionalLight.shadowCameraFar = base.camera.far;
-        directionalLight.shadowCameraFov = base.camera.fov;
-        directionalLight.shadowCameraTop = -1000;
-        directionalLight.shadowCameraLeft = -1000;
-        directionalLight.shadowCameraBottom = 1000;
-        directionalLight.shadowCameraRight = 1000;
+        directionalLight.shadowCameraFov = base.cam
+        directionalLight.shadowCameraTop = -1024 * boxScale;
+        directionalLight.shadowCameraLeft = -1024 * boxScale;
+        directionalLight.shadowCameraBottom = 1024 * boxScale;
+        directionalLight.shadowCameraRight = 1024 * boxScale;
         directionalLight.shadowBias = .000020;
         directionalLight.shadowDarkness = 0.4;
-        directionalLight.shadowMapWidth = 2048;
-        directionalLight.shadowMapHeight = 2048;
+        directionalLight.shadowMapWidth = 2048 * boxScale;
+        directionalLight.shadowMapHeight = 2048 * boxScale;
+
+        // directionalLight.shadowCameraVisible = true;
+        // directionalLight.shadowCascade = true;
+        // directionalLight.shadowCascadeCount = 3;
+        // directionalLight.shadowCascadeNearZ = [ -1.000, 0.9, 0.975 ];
+        // directionalLight.shadowCascadeFarZ  = [  0.9, 0.975, 1.000 ];
+        // directionalLight.shadowCascadeWidth = [ 2048, 2048, 2048 ];
+        // directionalLight.shadowCascadeHeight = [ 2048, 2048, 2048 ];
+        // directionalLight.shadowCascadeBias = [ 0.00005, 0.000065, 0.000065 ];
+        // directionalLight.shadowCascadeOffset.set( 0, 0, -1024 );
+        
         base.scene.add( directionalLight );
 
         hemisphereLight = new THREE.HemisphereLight( 0xffffff, 0x606060, 1 );
@@ -756,6 +766,8 @@
         // fog = new THREE.Fog(0xeeffee, LIGHT_PARAMS[base.renderType].fogNear, LIGHT_PARAMS[base.renderType].fogFar);
         fog = new THREE.FogExp2( 0xffffff, 0.000055 );
         base.scene.fog = fog;
+
+        base.controls.settings.boxScale = boxScale;
 
         base.renderer.setClearColor( 0xf0f0f0 );
         base.renderer.shadowMapEnabled = true;

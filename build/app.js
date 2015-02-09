@@ -2045,7 +2045,10 @@ THREE.Projector = function () {
 //      controls.target.z = 150;
 // Simple substitute "OrbitControls" and the control should work as-is.
 
-THREE.OrbitControls = function ( object, domElement ) {
+THREE.OrbitControls = function ( object, domElement, settings ) {
+
+	//settings
+	this.settings = settings;
 
 	this.object = object;
 	this.domElement = ( domElement !== undefined ) ? domElement : document;
@@ -2077,6 +2080,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	// Set to true to disable this control
 	this.noPan = false;
+	this.panSpeed = .3;
 	this.keyPanSpeed = 7.0;	// pixels moved per arrow key push
 
 	// Set to true to automatically rotate around the target
@@ -2311,6 +2315,9 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		var position = this.object.position;
 
+		var center = ( this.settings && this.settings.cameraAsOrbitCenter ) ? position : this.target;
+		var orbit = ( this.settings && this.settings.cameraAsOrbitCenter ) ? this.target : position;
+
 		offset.copy( position ).sub( this.target );
 
 		// rotate offset to "y-axis-is-up" space
@@ -2342,13 +2349,13 @@ THREE.OrbitControls = function ( object, domElement ) {
 		// restrict phi to be betwee EPS and PI-EPS
 		phi = Math.max( EPS, Math.min( Math.PI - EPS, phi ) );
 
-		var radius = offset.length() * scale;
+		var radius = ( this.settings && this.settings.cameraAsOrbitCenter ) ? 5000 * scale * this.settings.boxScale : offset.length() * scale;
 
 		// restrict radius to be between desired limits
 		radius = Math.max( this.minDistance, Math.min( this.maxDistance, radius ) );
 		
 		// move target to panned location
-		this.target.add( pan );
+		 center.add( pan );
 
 		offset.x = radius * Math.sin( phi ) * Math.sin( theta );
 		offset.y = radius * Math.cos( phi );
@@ -2357,7 +2364,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 		// rotate offset back to "camera-up-vector-is-up" space
 		offset.applyQuaternion( quatInverse );
 
-		position.copy( this.target ).add( offset );
+		( this.settings && this.settings.cameraAsOrbitCenter ) ?  orbit.copy( center ).sub( offset ) : orbit.copy( center ).add( offset );
 
 		this.object.lookAt( this.target );
 
@@ -2370,12 +2377,12 @@ THREE.OrbitControls = function ( object, domElement ) {
 		// min(camera displacement, camera rotation in radians)^2 > EPS
 		// using small-angle approximation cos(x/2) = 1 - x^2 / 8
 
-		if ( lastPosition.distanceToSquared( this.object.position ) > EPS
+		if ( lastPosition.distanceToSquared( center ) > EPS
 		    || 8 * (1 - lastQuaternion.dot(this.object.quaternion)) > EPS ) {
 
 			this.dispatchEvent( changeEvent );
 
-			lastPosition.copy( this.object.position );
+			lastPosition.copy( center );
 			lastQuaternion.copy (this.object.quaternion );
 
 		}
@@ -2489,7 +2496,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 			panEnd.set( event.clientX, event.clientY );
 			panDelta.subVectors( panEnd, panStart );
 			
-			scope.pan( panDelta.x, panDelta.y );
+			scope.panXZ( panDelta.x * scope.panSpeed, - panDelta.y * scope.panSpeed );
 
 			panStart.copy( panEnd );
 
@@ -2557,7 +2564,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 				break;
 
 			case scope.keys.FORWARD:
-				scope.panXZ( 0, - 4 * scope.keyPanSpeed );
+				scope.panXZ( 0, - scope.keyPanSpeed );
 				scope.update();
 				break;
 
@@ -2567,7 +2574,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 				break;
 
 			case scope.keys.BACKWARD:
-				scope.panXZ( 0, 4 * scope.keyPanSpeed );
+				scope.panXZ( 0, scope.keyPanSpeed );
 				scope.update();
 				break;
 
@@ -2707,7 +2714,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 				panEnd.set( event.touches[ 0 ].pageX, event.touches[ 0 ].pageY );
 				panDelta.subVectors( panEnd, panStart );
 				
-				scope.pan( panDelta.x, panDelta.y );
+				scope.panXZ( panDelta.x * scope.panSpeed, - panDelta.y * scope.panSpeed );
 
 				panStart.copy( panEnd );
 
@@ -2873,12 +2880,14 @@ if ( typeof module === 'object' ) {
             this.controls =controls;
         }
         else {
-            this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
+            this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement, {cameraAsOrbitCenter: true} );
             this.controls.target.set( 0, 0, 0 );
             this.controls.rotateSpeed = 1.0;
             this.controls.zoomSpeed = 1.2;
-            this.controls.panSpeed = 0.8;
-            this.controls.keys = { LEFT: 65, FORWARD: 87, RIGHT: 68, BACKWARD: 83, UP: 32 };
+            this.controls.keyPanSpeed = 10;
+            this.controls.panSpeed = 1;
+            this.controls.noZoom = true;
+            this.controls.keys = { LEFT: 65, FORWARD: 87, RIGHT: 68, BACKWARD: 83, UP: 81, BOTTOM: 69 };
             this.controls.mouseButtons = { ORBIT: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
         }
 
@@ -3909,21 +3918,31 @@ if ( typeof module === 'object' ) {
         base.scene.add( ambientLight );
 
         directionalLight = new THREE.DirectionalLight( 0xeeeeee, LIGHT_PARAMS[base.renderType].directionalLightDensity );
-        // directionalLight.shadowCameraVisible = true;
         directionalLight.position.set( 0, 6000, 5000 );
         directionalLight.target.position.set( 0, 0, 0 );
         directionalLight.castShadow = true;
         directionalLight.shadowCameraNear = base.camera.near;
         directionalLight.shadowCameraFar = base.camera.far;
-        directionalLight.shadowCameraFov = base.camera.fov;
-        directionalLight.shadowCameraTop = -1000;
-        directionalLight.shadowCameraLeft = -1000;
-        directionalLight.shadowCameraBottom = 1000;
-        directionalLight.shadowCameraRight = 1000;
+        directionalLight.shadowCameraFov = base.cam
+        directionalLight.shadowCameraTop = -1024 * boxScale;
+        directionalLight.shadowCameraLeft = -1024 * boxScale;
+        directionalLight.shadowCameraBottom = 1024 * boxScale;
+        directionalLight.shadowCameraRight = 1024 * boxScale;
         directionalLight.shadowBias = .000020;
         directionalLight.shadowDarkness = 0.4;
-        directionalLight.shadowMapWidth = 2048;
-        directionalLight.shadowMapHeight = 2048;
+        directionalLight.shadowMapWidth = 2048 * boxScale;
+        directionalLight.shadowMapHeight = 2048 * boxScale;
+
+        // directionalLight.shadowCameraVisible = true;
+        // directionalLight.shadowCascade = true;
+        // directionalLight.shadowCascadeCount = 3;
+        // directionalLight.shadowCascadeNearZ = [ -1.000, 0.9, 0.975 ];
+        // directionalLight.shadowCascadeFarZ  = [  0.9, 0.975, 1.000 ];
+        // directionalLight.shadowCascadeWidth = [ 2048, 2048, 2048 ];
+        // directionalLight.shadowCascadeHeight = [ 2048, 2048, 2048 ];
+        // directionalLight.shadowCascadeBias = [ 0.00005, 0.000065, 0.000065 ];
+        // directionalLight.shadowCascadeOffset.set( 0, 0, -1024 );
+        
         base.scene.add( directionalLight );
 
         hemisphereLight = new THREE.HemisphereLight( 0xffffff, 0x606060, 1 );
@@ -3931,13 +3950,13 @@ if ( typeof module === 'object' ) {
 
         // SKYDOME
         var uniforms = {
-            topColor:    { type: "c", value: new THREE.Color( 0x1144ff ) },
+            topColor:    { type: "c", value: new THREE.Color( 0x3366ff ) },
             bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
-            offset:      { type: "f", value: 400 },
-            exponent:    { type: "f", value: 0.8 }
+            offset:      { type: "f", value: 200 },
+            exponent:    { type: "f", value: .85 }
         }
         var tc = new THREE.Color();
-        uniforms.topColor.value.copy( tc.setHSL( 0.6, 1, 0.75 ));
+        uniforms.topColor.value.copy( tc.setHSL( 0.6, 2, 0.5 ));
 
         var skyGeo = new THREE.SphereGeometry( LIGHT_PARAMS[base.renderType].sphereRadius , 32, 15 );
         var skyMat = new THREE.ShaderMaterial( {
@@ -3963,8 +3982,11 @@ if ( typeof module === 'object' ) {
         mouseOnScreenVector = new THREE.Vector2();
 
         //fog
-        fog = new THREE.Fog(0xeeffee, LIGHT_PARAMS[base.renderType].fogNear, LIGHT_PARAMS[base.renderType].fogFar);
+        // fog = new THREE.Fog(0xeeffee, LIGHT_PARAMS[base.renderType].fogNear, LIGHT_PARAMS[base.renderType].fogFar);
+        fog = new THREE.FogExp2( 0xffffff, 0.000055 );
         base.scene.fog = fog;
+
+        base.controls.settings.boxScale = boxScale;
 
         base.renderer.setClearColor( 0xf0f0f0 );
         base.renderer.shadowMapEnabled = true;
