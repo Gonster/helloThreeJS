@@ -721,13 +721,13 @@
 
         // SKYDOME
         var uniforms = {
-            topColor:    { type: "c", value: new THREE.Color( 0x1144ff ) },
+            topColor:    { type: "c", value: new THREE.Color( 0x3366ff ) },
             bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
-            offset:      { type: "f", value: 400 },
-            exponent:    { type: "f", value: 0.8 }
+            offset:      { type: "f", value: 200 },
+            exponent:    { type: "f", value: .85 }
         }
         var tc = new THREE.Color();
-        uniforms.topColor.value.copy( tc.setHSL( 0.6, 1, 0.75 ));
+        uniforms.topColor.value.copy( tc.setHSL( 0.6, 2, 0.5 ));
 
         var skyGeo = new THREE.SphereGeometry( LIGHT_PARAMS[base.renderType].sphereRadius , 32, 15 );
         var skyMat = new THREE.ShaderMaterial( {
@@ -753,7 +753,8 @@
         mouseOnScreenVector = new THREE.Vector2();
 
         //fog
-        fog = new THREE.Fog(0xeeffee, LIGHT_PARAMS[base.renderType].fogNear, LIGHT_PARAMS[base.renderType].fogFar);
+        // fog = new THREE.Fog(0xeeffee, LIGHT_PARAMS[base.renderType].fogNear, LIGHT_PARAMS[base.renderType].fogFar);
+        fog = new THREE.FogExp2( 0xffffff, 0.000055 );
         base.scene.fog = fog;
 
         base.renderer.setClearColor( 0xf0f0f0 );
