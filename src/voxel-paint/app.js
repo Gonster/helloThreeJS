@@ -1047,6 +1047,7 @@
     function animate() {
         requestAnimationFrame( animate );
         base.renderer.render( base.scene, base.camera );
+        base.stats.update();
     }
 
     //begin

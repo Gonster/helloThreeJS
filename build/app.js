@@ -2891,6 +2891,11 @@ if ( typeof module === 'object' ) {
             this.controls.mouseButtons = { ORBIT: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
         }
 
+        this.stats = new Stats();
+        this.stats.domElement.style.position = 'absolute';
+        this.stats.domElement.style.top = '0px';
+        this.stats.domElement.style.zIndex = '999';
+        document.body.appendChild( this.stats.domElement );
         subInit();
     };
 
@@ -4266,6 +4271,7 @@ if ( typeof module === 'object' ) {
     function animate() {
         requestAnimationFrame( animate );
         base.renderer.render( base.scene, base.camera );
+        base.stats.update();
     }
 
     //begin
