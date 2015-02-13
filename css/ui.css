@@ -37,7 +37,7 @@
 
 .sidebar #sidebarResize {
 	position: fixed;
-	top: inherit;
+	bottom: 3px;
 	margin: 3px 0 0 -17px;
 	width: 16px;
 }
