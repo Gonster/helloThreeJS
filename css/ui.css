@@ -15,8 +15,16 @@
 	border: solid  thin rgba(0, 0, 0, .8);	
 	box-shadow: -1px 0 5px rgba(0, 0, 0, .8);	
 	padding: 20px;
+	padding-right: 15px;
+	padding-top: 2px;
 	overflow-y: auto;
-	overflow-x: hidden;
+	overflow-x: hidden; 
+}
+
+.sidebar .panel {
+	margin-bottom: 10px;
+	margin-right: -10px;
+	width: 280px;
 }
 
 .sidebar-right {
@@ -29,7 +37,7 @@
 
 .sidebar #sidebarResize {
 	position: fixed;
-	top: inherit;
+	bottom: 3px;
 	margin: 3px 0 0 -17px;
 	width: 16px;
 }
@@ -49,6 +57,23 @@
 		top: 60%;
 		overflow-x: auto;
 	}
+}
+
+.sidebar .btn-color {
+	display: none;
+}
+.sidebar .btn-image {
+	display: block;
+}
+
+.sidebar  #buttonGroupTexturesType.btn-group {
+	width: 100%;
+	margin: -20px 0 10px 0;
+}
+
+.sidebar  #buttonGroupTexturesType.btn-group > .btn {
+	width: 50%;
+	padding: 0;
 }
 
 .sidebar #sidebarResize > .btn {
@@ -115,7 +140,9 @@ fieldset[disabled] .btn-tool:active,
 .btn-tool[disabled].active,
 fieldset[disabled] .btn-tool.active {
   background-color: rgba(0, 0, 0, .2);
-  border-color: rgba(0, 0, 0, .3);
+  border-color: rgba(0, 0, 0, .4);
+  color: #999;
+  box-shadow: rgba(0, 0, 0, 0.6) 0px 0px 5px 0px inset
 }
 .btn-tool .badge {
   color: #337ab7;
