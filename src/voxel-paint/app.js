@@ -672,7 +672,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     for(var i = 0, l = results.length;i < l; i++) {
                         $('#openModal .modal-body .button-group-vertical').append(
                           '<label class="btn btn-primary">'
-                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+results[i].get('objectId')+'" autocomplete="off">'
+                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+results[i].id+'" autocomplete="off">'
                           + '  <label id="boxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
@@ -701,7 +701,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
   
                 box.set('camera', cameraSave || '0,0,0;1000,500,1000');
                 box.set('meshes', meshSave || '');
-                if(!box.objectId){
+                if(!box.id){
                     var name = prompt('请输入文件名', '未命名');
                     box.set('name', name || '未命名');
                     box.set('user', AV.User.current());
