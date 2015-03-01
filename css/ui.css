@@ -59,6 +59,23 @@
 	}
 }
 
+.btn-group-accountbtn {
+	margin: 0 0 8px 0;
+}
+
+.btn-group-accountbtn .btn {
+	border-radius: 0;
+	border: none;
+	background-color: transparent;
+}
+
+.btn-group-accountbtn #loginMessage {
+	border: none;
+	background-color: transparent;
+	opacity: 0.6;
+	display: none;
+}
+
 .sidebar .btn-color {
 	display: none;
 }

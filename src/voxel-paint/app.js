@@ -1,31 +1,43 @@
 /**
 *@author Gonster  ( gonster.github.io )
 */
-        var vertexShader ='varying vec3 vWorldPosition;'
-            +'void main() {'
-            +'   vec4 worldPosition = modelMatrix * vec4( position, 1.0 );'
-            +'   vWorldPosition = worldPosition.xyz;'
-            +'    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );'
-            +'}';
-        
-        var fragmentShader = 'uniform vec3 topColor;'
-            +'uniform vec3 bottomColor;'
-            +'uniform float offset;'
-            +'uniform float exponent;'
-            +'varying vec3 vWorldPosition;'
-            +'void main() {'
-            +    'float h = normalize( vWorldPosition + offset ).y;'
-            +    'gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );'
-            +'}';
-        
+var vertexShader ='varying vec3 vWorldPosition;'
+    +'void main() {'
+    +'   vec4 worldPosition = modelMatrix * vec4( position, 1.0 );'
+    +'   vWorldPosition = worldPosition.xyz;'
+    +'    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );'
+    +'}';
+
+var fragmentShader = 'uniform vec3 topColor;'
+    +'uniform vec3 bottomColor;'
+    +'uniform float offset;'
+    +'uniform float exponent;'
+    +'varying vec3 vWorldPosition;'
+    +'void main() {'
+    +    'float h = normalize( vWorldPosition + offset ).y;'
+    +    'gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );'
+    +'}';
+    
+AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512vitlk5in4c4a95acbyj8qiqlgcuh3p9xm5t");
 
 (function( window, document, Base, THREE, Detector ){
+    //login alert flag
+    var loginAlertFlag = false;
+
     //image download dom element
     var imageCaptureDomElement = document.createElement('a');
     imageCaptureDomElement.id = 'imageCapture';
     imageCaptureDomElement.style.display = 'none';    
     imageCaptureDomElement.target = '_blank';
     document.body.appendChild(imageCaptureDomElement);
+
+    var Box = AV.Object.extend('Box',{
+        camera: '0,0,0;1000,500,1000',
+        meshes: '',
+        name: '未命名'
+    });
+
+    var box = new Box();
 
     //utils
     function iterateTextures( isReversed ){
@@ -193,12 +205,12 @@
             else save = data;
             window.localStorage.setItem(key || this.storageKeys.meshes, save);
         },
-        'loadMeshes': function loadMeshes(key, loadType, animation){
+        'loadMeshes': function loadMeshes(key, loadType, animation, isNotLocalStorage){
             this.isLoadingBoxEnd = false;
             var loadDataArray = []; 
             var boxWidth = DEFAULT_BOX.width; 
             {
-                var load = this.load(key);
+                var load = isNotLocalStorage ? key : this.load(key);
                 if(load) {
                     var array = load.split(':');
                     if(array){
@@ -261,10 +273,10 @@
                 voxelAnimationManager.endFlag = true;
             }
         },
-        'loadCamera': function loadCamera(key) {
+        'loadCamera': function loadCamera(key, isNotLocalStorage) {
             var loadDataArray = []; 
             {
-                var load = this.load(key);
+                var load = isNotLocalStorage ? key : this.load(key);
                 if(load) loadDataArray = load.split(';');
             }
             if(loadDataArray.length > 0){
@@ -282,10 +294,10 @@
                 base.controls.update();
             }
         },
-        'loadSidebarSelectedButtons': function loadSidebarSelectedButtons(key) {
+        'loadSidebarSelectedButtons': function loadSidebarSelectedButtons(key, isNotLocalStorage) {
             var loadDataArray = []; 
             {
-                var load = this.load(key);
+                var load = isNotLocalStorage ? key : this.load(key);
                 if(load) loadDataArray = load.split(',');
             }
             if(loadDataArray.length > 0){
@@ -638,7 +650,76 @@
         },
         'redo': function(){
             actionRecorder.redo();   
-        }         
+        },
+        'signInOpener': function(){
+            $('#signInModal').modal('show');
+        },     
+        'loginOpener': function(){
+            $('#loginModal').modal('show');
+        },   
+        'logout': function(){
+            if (AV.User.current()) {
+                AV.User.logout();
+                loginTrigger(false);
+            }
+        },
+        'open': function() {
+            var query = new AV.Query(Box);
+            query.select('name');
+            query.equalTo('user', AV.User.current());
+            query.find().then({
+                function(results){
+                    $('#openModal .modal-body .button-group-vertical').html('');
+                    for(var i = 0, l = results.length;i < l; i++) {
+                        $('#openModal .modal-body .button-group-vertical').append(
+                          '<label class="btn btn-primary">'
+                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+objectId+'" autocomplete="off">'
+                          + '  <label id="boxDataLabel'+i+'"></label>';
+                          + '</label>'
+                        );
+                        $('#openModal .modal-body .button-group-vertical #boxDataLabel'+i).text(results[i].name);
+                    }
+                    $('#openModal').modal('show');
+                }
+            });
+
+        },
+        'save': function() {
+            if(AV.User.current()){
+                var meshSave = '';
+                meshSave += DEFAULT_BOX.width + ':';
+                for (var i = 0, l = cubeMeshes.length; i < l; i++) {
+                    meshSave += cubeMeshes[i].geo.id.replace('geo','') + ',';
+                    meshSave += cubeMeshes[i].material.id.replace('texture','') + ',';
+                    meshSave += cubeMeshes[i].meshObject.position.x + ',';
+                    meshSave += cubeMeshes[i].meshObject.position.y + ',';
+                    meshSave += cubeMeshes[i].meshObject.position.z + ';';
+                }
+
+                var cameraSave = '';
+                cameraSave += (base.controls.target.x + ',' + base.controls.target.y + ',' + base.controls.target.z + ';');
+                cameraSave += (base.controls.object.position.x + ',' + base.controls.object.position.y + ',' + base.controls.object.position.z + ';');
+                
+                box.set('camera', cameraSave);
+                box.set('meshes', meshSave);
+                if(box.objectId){
+                    box.set('name', name);
+                    var name = prompt('请输入文件名', '未命名');
+                    box.set('user', AV.User.current());
+                    box.set('ACL', new AV.ACL(AV.User.current()));
+                }
+                box.save();
+            }
+            else{
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
+                voxelPaintStorageManager.save();
+                if(!loginAlertFlag){
+                    alert('未登录状态将只能保存在本地');
+                    loginAlertFlag = true;
+                }
+            }
+        }
     };
 
     var currentBoxMaterialParentIndex = 0;
@@ -987,7 +1068,7 @@
             }
         }
         else if(this.type === 'button' || this.nodeName.toLowerCase() === 'button'){
-            sidebarParams[this.id]();
+            if(sidebarParams[this.id]) sidebarParams[this.id]();
         }
     }
 
@@ -1074,6 +1155,31 @@
                             'id': 'minSidebar'
                         }
                     ] 
+                },   
+                {                    
+                    'UIType': 'buttonGroup',
+                    'id': 'accountControl',
+                    'name': 'accountControl',
+                    'buttonType': 'button',
+                    'appendClass': 'btn-group-accountbtn',
+                    'buttons':[
+                        {
+                            'title': '注册',
+                            'id': 'signInOpener'
+                        },
+                        {
+                            'title': '登录',
+                            'id': 'loginOpener'
+                        },
+                        {
+                            'title': '注销',
+                            'id': 'logout'
+                        },
+                        {
+                            'title': '登录后方可保存数据到服务器上',
+                            'id': 'loginMessage'
+                        }
+                    ] 
                 },
                 // {
                 //     'UIType': 'panel',
@@ -1156,8 +1262,7 @@
                             'buttons': [
                                 {
                                     'title': '辅助物体开关',
-                                    'id': 'toggleAux',
-                                    'checked': true 
+                                    'id': 'toggleAux'
                                 },
                                 {
                                     'title': '截图',
@@ -1182,12 +1287,28 @@
                                     'buttons':[
                                         {
                                             'title': '撤销',
-                                            'id': 'undo',
-                                            'checked': true
+                                            'id': 'undo'
                                         },
                                         {
                                             'title': '重做',
                                             'id': 'redo'
+                                        }
+                                    ]    
+                                },
+                                {
+                                    'UIType': 'buttonGroup',
+                                    'id': 'buttonGroupADM',
+                                    'name': 'adm',
+                                    'buttonType': 'button',
+                                    'appendClass': 'btn-group-toolbtn',
+                                    'buttons':[
+                                        {
+                                            'title': '打开',
+                                            'id': 'open'
+                                        },
+                                        {
+                                            'title': '保存',
+                                            'id': 'save'
                                         }
                                     ]    
                                 }
@@ -1351,11 +1472,109 @@
             'height': defaultTexturesButtonWidth
         }).addEventListener('click', onSidebarBtnClick, false);
     }
-    
-    voxelPaintStorageManager.loadCamera(voxelPaintStorageManager.storageKeys.camera);
+
+    var onLoginClick = function(){
+        var username = $('#loginUsername').val();
+        var password = $('#loginPassword').val();
+        var loginBtn = $('#login');
+
+        loginBtn.attr('disabled', 'disabled');
+
+        if (AV.User.current()) {
+            AV.User.logout();
+        }
+        AV.User.logIn(username, password, {
+            success:function(user) {
+                loginTrigger(true);
+                loginBtn.removeAttr('disabled');
+                $('#loginModal').modal('hide');
+            },
+            error: function(user, error) {
+                $('#loginError').html('用户名或密码错误');
+                $('#loginError').parent().show();
+                loginBtn.removeAttr('disabled');
+            }
+        });
+    };
+
+   var onSignInClick = function(){
+        var email = $('#signInEmail').val();
+        var username = $('#signInUsername').val();
+        var password = $('#signInPassword').val();
+        var signInBtn = $('#signIn');
+
+        signInBtn.attr('disabled', 'disabled');
+
+        if (AV.User.current()) {
+            AV.User.logout();
+        }
+        AV.User.signUp(username, password, { ACL: new AV.ACL(), email: email }, {
+            success:function(user) {
+                loginTrigger(true);
+                signInBtn.removeAttr('disabled');
+                $('#signInModal').modal('hide');
+            },
+            error: function(user, error) {
+                $('#signInError').html(error.message);
+                $('#signInError').parent().show();
+                signInBtn.removeAttr('disabled');
+            }
+        });
+    };
+
+    var onOpenItClick = function(){
+        if(confirm('是否保存当前文件？')) {
+            sidebarParams.save();
+        }
+
+        var oi = $('#openModal input[type=radio]:checked').val();
+        if(oi) {
+            var query = new AV.Query(Box);
+            query.get( oi, {
+                success: function(currentBox) {
+                    box = currentBox;
+                    voxelPaintStorageManager.loadCamera(currentBox.camera, true);
+                    voxelPaintStorageManager.loadMeshes(currentBox.meshes, defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                }
+            });
+        }
+        $('#openModal').modal('hide');
+        
+    };
+
+    document.getElementById('login').addEventListener('click', onLoginClick, false);
+    document.getElementById('signIn').addEventListener('click', onSignInClick, false);
+    document.getElementById('openIt').addEventListener('click', onOpenItClick, false);
+
 
     voxelPaintStorageManager.loadSidebarSelectedButtons(voxelPaintStorageManager.storageKeys.sidebar);
 
-    voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+    function loginTrigger(flag){
+        if(flag) {            
+            $('#loginOpener').hide();
+            $('#logout').show();
+            $('#signInOpener').hide();            
+            $('#loginMessage').html('你好 ' + AV.User.current().escape("username"));
+            $('#loginMessage').show();
+            $('#open').removeAttr('disabled');
+        }
+        else{
+            $('#loginOpener').show();
+            $('#logout').hide();
+            $('#signInOpener').show();
+            $('#loginMessage').hide();
+            $('#open').attr('disabled', 'disabled');
+        }
+    }
+
+    if (AV.User.current()) {
+        loginTrigger(true);
+    } 
+    else {
+        loginTrigger(false);
+        voxelPaintStorageManager.loadCamera(voxelPaintStorageManager.storageKeys.camera);
+        voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+    }
+
 
 })( window, document, Base, THREE, Detector );
