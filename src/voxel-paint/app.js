@@ -1472,7 +1472,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         }).addEventListener('click', onSidebarBtnClick, false);
     }
 
-    var onLoginClick = function(){
+     function onLoginClick() {
         var username = $('#loginUsername').val();
         var password = $('#loginPassword').val();
         var loginBtn = $('#login');
@@ -1494,9 +1494,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 loginBtn.removeAttr('disabled');
             }
         });
-    };
+    }
 
-   var onSignInClick = function(){
+   function onSignInClick() {
         var email = $('#signInEmail').val();
         var username = $('#signInUsername').val();
         var password = $('#signInPassword').val();
@@ -1519,9 +1519,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 signInBtn.removeAttr('disabled');
             }
         });
-    };
+    }
 
-    var onOpenItClick = function(){
+    function onOpenItClick() {
         if(confirm('是否保存当前文件？')) {
             sidebarParams.save();
         }
