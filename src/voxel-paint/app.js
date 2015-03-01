@@ -676,7 +676,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                           + '  <label id="boxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#openModal .modal-body .button-group-vertical #boxDataLabel'+i).text(results[i].get('name');
+                        $('#openModal .modal-body .button-group-vertical #boxDataLabel'+i).text(results[i].get('name'));
                     }
                     $('#openModal').modal('show');
                 }
