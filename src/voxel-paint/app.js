@@ -31,11 +31,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     imageCaptureDomElement.target = '_blank';
     document.body.appendChild(imageCaptureDomElement);
 
-    var Box = AV.Object.extend('Box',{
-        camera: '0,0,0;1000,500,1000',
-        meshes: '',
-        name: '未命名'
-    });
+    var Box = AV.Object.extend('Box');
 
     var box = new Box();
 
@@ -676,11 +672,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     for(var i = 0, l = results.length;i < l; i++) {
                         $('#openModal .modal-body .button-group-vertical').append(
                           '<label class="btn btn-primary">'
-                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+results[i].objectId+'" autocomplete="off">'
+                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+results[i].get('objectId')+'" autocomplete="off">'
                           + '  <label id="boxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#openModal .modal-body .button-group-vertical #boxDataLabel'+i).text(results[i].name);
+                        $('#openModal .modal-body .button-group-vertical #boxDataLabel'+i).text(results[i].get('name');
                     }
                     $('#openModal').modal('show');
                 }
@@ -702,12 +698,12 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 var cameraSave = '';
                 cameraSave += (base.controls.target.x + ',' + base.controls.target.y + ',' + base.controls.target.z + ';');
                 cameraSave += (base.controls.object.position.x + ',' + base.controls.object.position.y + ',' + base.controls.object.position.z + ';');
-                
-                box.set('camera', cameraSave);
-                box.set('meshes', meshSave);
+  
+                box.set('camera', cameraSave || '0,0,0;1000,500,1000');
+                box.set('meshes', meshSave || '');
                 if(!box.objectId){
-                    box.set('name', name);
                     var name = prompt('请输入文件名', '未命名');
+                    box.set('name', name || '未命名');
                     box.set('user', AV.User.current());
                     box.set('ACL', new AV.ACL(AV.User.current()));
                 }
@@ -1536,8 +1532,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             query.get( oi, {
                 success: function(currentBox) {
                     box = currentBox;
-                    voxelPaintStorageManager.loadCamera(currentBox.camera, true);
-                    voxelPaintStorageManager.loadMeshes(currentBox.meshes, defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                    voxelPaintStorageManager.loadCamera(currentBox.get('camera'), true);
+                    voxelPaintStorageManager.loadMeshes(currentBox.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
                 }
             });
         }
