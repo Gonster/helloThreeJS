@@ -662,7 +662,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         },   
         'logout': function(){
             if (AV.User.current()) {
-                AV.User.logout();
+                AV.User.logOut();
                 loginTrigger(false);
             }
         },
@@ -705,7 +705,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 
                 box.set('camera', cameraSave);
                 box.set('meshes', meshSave);
-                if(box.objectId){
+                if(!box.objectId){
                     box.set('name', name);
                     var name = prompt('请输入文件名', '未命名');
                     box.set('user', AV.User.current());
@@ -1484,7 +1484,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         loginBtn.attr('disabled', 'disabled');
 
         if (AV.User.current()) {
-            AV.User.logout();
+            AV.User.logOut();
         }
         AV.User.logIn(username, password, {
             success:function(user) {
@@ -1509,7 +1509,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         signInBtn.attr('disabled', 'disabled');
 
         if (AV.User.current()) {
-            AV.User.logout();
+            AV.User.logOut();
         }
         AV.User.signUp(username, password, { ACL: new AV.ACL(), email: email }, {
             success:function(user) {
@@ -1550,6 +1550,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     document.getElementById('openIt').addEventListener('click', onOpenItClick, false);
 
 
+    voxelPaintStorageManager.loadCamera(voxelPaintStorageManager.storageKeys.camera);
     voxelPaintStorageManager.loadSidebarSelectedButtons(voxelPaintStorageManager.storageKeys.sidebar);
 
     function loginTrigger(flag){
@@ -1575,7 +1576,6 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     } 
     else {
         loginTrigger(false);
-        voxelPaintStorageManager.loadCamera(voxelPaintStorageManager.storageKeys.camera);
         voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
     }
 
