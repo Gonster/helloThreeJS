@@ -17,7 +17,11 @@ var fragmentShader = 'uniform vec3 topColor;'
     +    'float h = normalize( vWorldPosition + offset ).y;'
     +    'gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );'
     +'}';
-    
+   
+function bubble(info) {
+    GoUI.Animation.bubble($('#bubble'), info);
+} 
+
 AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512vitlk5in4c4a95acbyj8qiqlgcuh3p9xm5t");
 
 (function( window, document, Base, THREE, Detector ){
@@ -166,7 +170,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'storageKeys': {
             'meshes': 'vp_meshs',
             'camera': 'vp_camera',
-            'sidebar': 'vp_sidebar'
+            'sidebar': 'vp_sidebar',
+            'boxId': 'vp_box_id',
+            'updateAt': 'vp_updateAt',
+            'boxName': 'vp_box_name',
+            'localChanges': 'vp_local_changes'
         },
         'load': function (key){
             return  window.localStorage && window.localStorage.getItem(key || this.storageKeys.meshes);
@@ -262,11 +270,87 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                             }
                         }
                         voxelAnimationManager.begin(animation, cubeMeshes);
+                        if(!isNotLocalStorage){
+                            bubble('载入本地数据完成，左键单击可立即完成动画');
+                        } 
+                        else{
+                            bubble('载入完成，左键单击可立即完成动画');
+                        } 
                         break;
                 }
             }
             else{
+                bubble('无本地数据，新建文件');
                 voxelAnimationManager.endFlag = true;
+            }
+        },
+        'loadRemote': function loadRemote() {
+            if( ! window.localStorage ) return;
+            var boxId = this.load(this.storageKeys.boxId);
+            var updateAt = this.load(this.storageKeys.updateAt);
+            if(boxId) {
+                bubble('载入云端文件...');
+                var query = AV.Query(Box);
+                query.select('name');
+                query.select('user');
+                query.equalTo('objectId', boxId)
+                query.find({
+                    success: function(retrievedBox) {
+                        if(retrievedBox.get('updateAt') === updateAt) {
+                            box = retrievedBox;
+                            retrievedBox.set('meshes', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.meshes));
+                            retrievedBox.set('camera', voxelPaintStorageManager.load(VoxelPaintStorageManager.storageKeys.camera));
+
+                            voxelPaintStorageManager.loadCamera(box.get('camera'), true);
+                            voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                        }
+                        else{
+                            if(retrievedBox.get('user').id === AV.User.current().id) {
+                                var localChanges = actionRecorder.changed = voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.localChanges);
+                                if(localChanges === '0') {
+                                    var q = AV.Query(Box);
+                                    q.get(retrievedBox.id, {
+                                        success: function(currentBox) {
+                                            box = currentBox;
+
+                                            voxelPaintStorageManager.loadCamera(box.get('camera'), true);
+                                            voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                                        },
+                                        error: function(currentBox, error) {
+                                            box = retrievedBox;
+                                            retrievedBox.set('meshes', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.meshes));
+                                            retrievedBox.set('camera', voxelPaintStorageManager.load(VoxelPaintStorageManager.storageKeys.camera));
+
+                                            voxelPaintStorageManager.loadCamera(box.get('camera'), true);
+                                            voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                                        }
+                                    });
+                                }
+                            }
+                            else{
+                                var q = AV.Query(Box);
+                                q.get(retrievedBox.id, {
+                                    success: function(currentBox) {
+                                        box = currentBox;
+
+                                        voxelPaintStorageManager.loadCamera(box.get('camera'), true);
+                                        voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                                    },
+                                    error: function(currentBox, error) {
+                                        voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                                    }
+                                });
+                            }
+                        }
+                    },
+                    error: function(retrievedBox, error) {
+                        bubble('载入失败，' + error.message);
+                        voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                    }
+                });
+            }
+            else {
+                voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
             }
         },
         'loadCamera': function loadCamera(key, isNotLocalStorage) {
@@ -339,6 +423,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         this.currentActionIndex = -1;
         this.actionArray = [];
         this.isCurrentActionAlive = undefined;
+        this.changed = '0';
     };
 
     ActionRecorder.prototype = {
@@ -419,6 +504,13 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             this.actionArray.push(action);
             this.currentActionIndex++;
             this.updateDom();
+            if(AV.User.current() && box && box.get('user') && (AV.User.current().id !==  box.get('user').id)) {
+                box = new Box();
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updateAt,'');
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');                
+            }
+            this.changed = 1;
         },
         'appendObjectToCurrentAction': function(actionType, mesh) {
             var currentAction = this.actionArray[this.currentActionIndex];
@@ -558,7 +650,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             'directionalLightDensity': 0.8,
             'basePlaneSegments': 2,
             'basePlaneWidth': 50000.0 * boxScale,
-            'basePlaneTextureRepeat': 200,
+            'basePlaneTextureRepeat': 80,
             'fogNear': 8000 * boxScale,
             'fogFar': 25000 * boxScale,
             'sphereRadius': 25000 * boxScale
@@ -648,19 +740,25 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             actionRecorder.redo();   
         },
         'signInOpener': function(){
+            $('#signInEmail').val('');
+            $('#signInUsername').val('');
+            $('#signInPassword').val('');
             $('#signInError').parent().hide();
             $('#signInModal').modal('show');
 
         },     
         'loginOpener': function(){
+            $('#loginUsername').val('');
+            $('#loginPassword').val('');
             $('#loginError').parent().hide();
             $('#loginModal').modal('show');
         },   
         'logout': function(){
             if (AV.User.current()) {
                 AV.User.logOut();
-                loginTrigger(false);
             }
+            loginTrigger(false);
+            bubble('已登出');
         },
         'open': function() {
             var query = new AV.Query(Box);
@@ -702,22 +800,66 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 box.set('camera', cameraSave || '0,0,0;1000,500,1000');
                 box.set('meshes', meshSave || '');
                 if(!box.id){
-                    var name = prompt('请输入文件名', '未命名');
+                    var name =  prompt('请输入文件名', box.get('name') || voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.boxName) || '未命名');
                     box.set('name', name || '未命名');
                     box.set('user', AV.User.current());
                     box.set('ACL', new AV.ACL(AV.User.current()));
                 }
-                box.save();
+                box.save({
+                    success: function(box) {
+                        bubble('已保存至云端');
+                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updateAt, box.get('updateAt'));
+                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId, box.id);
+                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name'));
+                    },
+                    error: function(box, error) {
+                        bubble('云端保存失败，将会保存在本地' + error.message);
+                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name'));
+
+                        actionRecorder.changed = '1';
+
+                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, '1');
+                    }
+                });
+                actionRecorder.changed = '0';
+
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, '0');
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
+                voxelPaintStorageManager.save();
             }
             else{
                 voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
                 voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
                 voxelPaintStorageManager.save();
+                var info = '已保存在本地';
                 if(!loginAlertFlag){
-                    alert('未登录状态将只能保存在本地');
+                    info += '，登录后可向云端保存多个文件';
                     loginAlertFlag = true;
                 }
+                bubble(info);
             }
+        },
+        newFile: function() {
+
+            if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
+
+            }
+            else{
+                if(confirm('是否保存当前文件？')) {
+                    sidebarParams.save();
+                }
+            }
+
+            sidebarParams.clearAll();
+            actionRecorder = new ActionRecorder();
+            actionRecorder.updateDom();
+            box = new Box();
+            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, '0');
+            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
+            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
+            voxelPaintStorageManager.save();
+        
         }
     };
 
@@ -759,13 +901,13 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         );
         basePlaneGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
         var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grasslight-big.jpg');
-        // var skyTexture = THREE.ImageUtils.loadTexture('texture/sky.jpg');
+        var skyTexture = THREE.ImageUtils.loadTexture('texture/sky.jpg');
         basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
         basePlaneTexture.repeat.set(
             LIGHT_PARAMS[base.renderType].basePlaneTextureRepeat, 
             LIGHT_PARAMS[base.renderType].basePlaneTextureRepeat
         );
-        basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture, bumpMap: basePlaneTexture, emissive: 0xffffff} );        
+        basePlaneMaterial = new THREE.MeshPhongMaterial( { ambient: 0xffffff, color: 0x33cc33, map: basePlaneTexture, bumpMap: basePlaneTexture, bumpScale: 3, specular: 0x335533, shininess: 15, emissive: 0xffffff} );        
         // basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33} );        
         basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
         basePlaneMesh.receiveShadow = true;
@@ -810,23 +952,24 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         base.scene.add( hemisphereLight );
 
         // SKYDOME
-        var uniforms = {
-            topColor:    { type: "c", value: new THREE.Color( 0x3366ff ) },
-            bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
-            offset:      { type: "f", value: 200 },
-            exponent:    { type: "f", value: .85 }
-        }
-        var tc = new THREE.Color();
-        uniforms.topColor.value.copy( tc.setHSL( 0.6, 2, 0.5 ));
+        // var uniforms = {
+        //     topColor:    { type: "c", value: new THREE.Color( 0x3366ff ) },
+        //     bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
+        //     offset:      { type: "f", value: 200 },
+        //     exponent:    { type: "f", value: .85 }
+        // }
+        // var tc = new THREE.Color();
+        // uniforms.topColor.value.copy( tc.setHSL( 0.6, 2, 0.5 ));
 
-        var skyGeo = new THREE.SphereGeometry( LIGHT_PARAMS[base.renderType].sphereRadius , 32, 15 );
-        var skyMat = new THREE.ShaderMaterial( {
-            uniforms: uniforms,
-            vertexShader: vertexShader,
-            fragmentShader: fragmentShader,
-            side: THREE.BackSide
-        } );
-
+        var skyGeo = new THREE.SphereGeometry( LIGHT_PARAMS[base.renderType].sphereRadius , 32, 15, 0, Math.PI * 2, 0, Math.PI / 2);
+        // var skyMat = new THREE.ShaderMaterial( {
+        //     uniforms: uniforms,
+        //     vertexShader: vertexShader,
+        //     fragmentShader: fragmentShader,
+        //     side: THREE.BackSide,
+        //     map: skyTexture
+        // } );
+        var skyMat  = new THREE.MeshLambertMaterial({color: 0x3366ff, map: skyTexture, side: THREE.BackSide, emissive: 0xffffff });
         var sky = new THREE.Mesh( skyGeo, skyMat );
         base.scene.add( sky );
 
@@ -844,7 +987,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
         //fog
         // fog = new THREE.Fog(0xeeffee, LIGHT_PARAMS[base.renderType].fogNear, LIGHT_PARAMS[base.renderType].fogFar);
-        fog = new THREE.FogExp2( 0xffffff, 0.000055 );
+        fog = new THREE.FogExp2( 0xffffff, 0.000053 );
         base.scene.fog = fog;
 
         base.controls.settings.boxScale = boxScale;
@@ -864,7 +1007,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         base.renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
         document.addEventListener( 'keydown', onDocumentKeyDown, false );
         document.addEventListener( 'keyup', onDocumentKeyUp, false );
-        autoSaveIntervalHandler = setInterval(onWindowBeforeUnload, autoSaveInterval);
+        autoSaveIntervalHandler = setInterval(autoSave, autoSaveInterval);
     }
 
 
@@ -910,20 +1053,45 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         }
     }
 
+    function autoSave(){
+      if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user') )){}
+      else {
+          voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
+          voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
+          voxelPaintStorageManager.save();
+      }
+    }
+
     //listeners
     function onWindowBeforeUnload(event) {
-        if(reloadFlag === 0){
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-            voxelPaintStorageManager.save();
+        if(reloadFlag === 0){            
+            if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user') )){}
+            else if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id ))) || !AV.User.current) {
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
+                voxelPaintStorageManager.save();
+            }
+            else{
+                if(confirm('是否保存当前文件？')) {
+                    sidebarParams.save();
+                }
+            }
         }
     }
 
     function onWindowReload(event) {
-        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-        voxelPaintStorageManager.save();
         reloadFlag = 1;
+        if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user') )){}
+        else if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
+            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
+            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
+            voxelPaintStorageManager.save();
+        }
+        else{
+            if(confirm('是否保存当前文件？')) {
+                sidebarParams.save();
+            }
+        }
     }
 
     function onWindowResize(event) {
@@ -1171,11 +1339,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                             'id': 'loginOpener'
                         },
                         {
-                            'title': '注销',
+                            'title': '登出',
                             'id': 'logout'
                         },
                         {
-                            'title': '登录后方可保存数据到服务器上',
+                            'title': '登录后方可保存数据到云端',
                             'id': 'loginMessage'
                         }
                     ] 
@@ -1279,6 +1447,31 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                             'children':[
                                 {
                                     'UIType': 'buttonGroup',
+                                    'id': 'buttonGroupADM',
+                                    'name': 'adm',
+                                    'buttonType': 'button',
+                                    'appendClass': 'btn-group-toolbtn',
+                                    'buttons':[
+                                        {
+                                            'title': '新建',
+                                            'id': 'newFile'
+                                        },
+                                        {
+                                            'title': '打开',
+                                            'id': 'open'
+                                        },
+                                        {
+                                            'title': '插入',
+                                            'id': 'insert'
+                                        },
+                                        {
+                                            'title': '保存',
+                                            'id': 'save'
+                                        }
+                                    ]    
+                                },
+                                {
+                                    'UIType': 'buttonGroup',
                                     'id': 'buttonGroup3',
                                     'name': 'actions',
                                     'buttonType': 'button',
@@ -1291,23 +1484,6 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                                         {
                                             'title': '重做',
                                             'id': 'redo'
-                                        }
-                                    ]    
-                                },
-                                {
-                                    'UIType': 'buttonGroup',
-                                    'id': 'buttonGroupADM',
-                                    'name': 'adm',
-                                    'buttonType': 'button',
-                                    'appendClass': 'btn-group-toolbtn',
-                                    'buttons':[
-                                        {
-                                            'title': '打开',
-                                            'id': 'open'
-                                        },
-                                        {
-                                            'title': '保存',
-                                            'id': 'save'
                                         }
                                     ]    
                                 }
@@ -1487,9 +1663,13 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 loginTrigger(true);
                 loginBtn.removeAttr('disabled');
                 $('#loginModal').modal('hide');
+                bubble('你好' + AV.User.current().escape('username'));
+                $('#loginUsername').val('');
+                $('#loginPassword').val('');
+                voxelPaintStorageManager.loadRemote();
             },
             error: function(user, error) {
-                $('#loginError').html('用户名或密码错误');
+                $('#loginError').html(error.message);
                 $('#loginError').parent().show();
                 loginBtn.removeAttr('disabled');
             }
@@ -1512,6 +1692,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 loginTrigger(true);
                 signInBtn.removeAttr('disabled');
                 $('#signInModal').modal('hide');
+                bubble('你好' + AV.User.current().escape('username'));
+                $('#signInEmail').val('');
+                $('#signInUsername').val('');
+                $('#signInPassword').val('');
+                voxelPaintStorageManager.loadRemote();
             },
             error: function(user, error) {
                 $('#signInError').html(error.message);
@@ -1522,8 +1707,14 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     }
 
     function onOpenItClick() {
-        if(confirm('是否保存当前文件？')) {
-            sidebarParams.save();
+
+        if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
+
+        }
+        else{
+            if(confirm('是否保存当前文件？')) {
+                sidebarParams.save();
+            }
         }
 
         var oi = $('#openModal input[type=radio]:checked').val();
@@ -1537,6 +1728,12 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     box = currentBox;
                     voxelPaintStorageManager.loadCamera(currentBox.get('camera'), true);
                     voxelPaintStorageManager.loadMeshes(currentBox.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                    if(currentBox.get('user').id === AV.User.current().id) {
+                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, '0');
+                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
+                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
+                        voxelPaintStorageManager.save();
+                    }
                 }
             });
         }
@@ -1557,9 +1754,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#loginOpener').hide();
             $('#logout').show();
             $('#signInOpener').hide();            
-            $('#loginMessage').html('你好 ' + AV.User.current().escape("username"));
+            $('#loginMessage').html('你好 ' + AV.User.current().escape('username'));
             $('#loginMessage').show();
             $('#open').removeAttr('disabled');
+            $('#newFile').removeAttr('disabled');
         }
         else{
             $('#loginOpener').show();
@@ -1567,16 +1765,17 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#signInOpener').show();
             $('#loginMessage').hide();
             $('#open').attr('disabled', 'disabled');
+            $('#newFile').attr('disabled', 'disabled');
         }
     }
 
     if (AV.User.current()) {
         loginTrigger(true);
+        voxelPaintStorageManager.loadRemote();
     } 
     else {
         loginTrigger(false);
         voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
     }
-
 
 })( window, document, Base, THREE, Detector );

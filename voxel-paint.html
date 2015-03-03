@@ -10,6 +10,7 @@
     <link rel="stylesheet" type="text/css" href="css/ui.css">
 </head>
 <body>
+  <div class="alert alert-info alert-vp fade" id="bubble"></div>
   <div class="modal fade" id="signInModal" tabindex="-1" role="dialog" aria-labelledby="signInModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -18,10 +19,12 @@
           <h4 class="modal-title"  id="signInModalLabel">注册</h4>
         </div>
         <div class="modal-body">
-          <div class="alert alert-danger" role="alert"><label id="signInError"></label></div>
-          <div class="form-group"><label for="signInEmail">邮箱</label><input type="text" class="form-control" id="signInEmail"/></div>
-          <div class="form-group"><label for="signInUsername">用户名</label><input type="text" class="form-control" id="signInUsername"/></div>
-          <div class="form-group"><label for="signInPassword">密码</label><input type="password" class="form-control" id="signInPassword"/></div>
+          <form>
+            <div class="alert alert-danger" role="alert"><label id="signInError"></label></div>
+            <div class="form-group"><label for="signInEmail">邮箱</label><input type="text" class="form-control" id="signInEmail"/></div>
+            <div class="form-group"><label for="signInUsername">用户名</label><input type="text" name="username" class="form-control" id="signInUsername"/></div>
+            <div class="form-group"><label for="signInPassword">密码</label><input type="password" class="form-control" id="signInPassword"/></div>
+          </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
@@ -38,9 +41,11 @@
           <h4 class="modal-title"  id="loginModalLabel">登录</h4>
         </div>
         <div class="modal-body">
-          <div class="alert alert-danger" role="alert"><label id="loginError"></label></div>
-          <div class="form-group"><label for="loginUsername">用户名\邮箱</label><input type="text" class="form-control" id="loginUsername"/></div>
-          <div class="form-group"><label for="loginPassword">密码</label><input type="password" class="form-control" id="loginPassword"/></div>
+          <form>
+            <div class="alert alert-danger" role="alert"><label id="loginError"></label></div>
+            <div class="form-group"><label for="loginUsername">用户名\邮箱</label><input type="text"  name="username" class="form-control" id="loginUsername"/></div>
+            <div class="form-group"><label for="loginPassword">密码</label><input type="password" class="form-control" id="loginPassword"/></div>
+          </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
