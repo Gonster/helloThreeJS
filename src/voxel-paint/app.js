@@ -293,7 +293,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 var query = new AV.Query(Box);
                 query.select('name', 'user');
                 query.equalTo('objectId', boxId)
-                query.find({
+                query.first({
                     success: function(retrievedBox) {
                         if(retrievedBox.get('updatedAt') === updatedAt) {
                             box = retrievedBox;
