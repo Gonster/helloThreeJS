@@ -176,10 +176,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             'boxName': 'vp_box_name',
             'localChanges': 'vp_local_changes'
         },
-        'load': function (key){
+        'load': function(key) {
             return  window.localStorage && window.localStorage.getItem(key || this.storageKeys.meshes);
         },
-        'save': function (key, data){
+        'save': function(key, data) {
             if( ! window.localStorage ) return;
             var save = '';
             if( ! data ){
@@ -209,7 +209,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             else save = data;
             window.localStorage.setItem(key || this.storageKeys.meshes, save);
         },
-        'loadMeshes': function loadMeshes(key, loadType, animation, isNotLocalStorage){
+        'loadMeshes': function loadMeshes(key, loadType, animation, isNotLocalStorage) {
             this.isLoadingBoxEnd = false;
             var loadDataArray = []; 
             var boxWidth = DEFAULT_BOX.width; 
@@ -1053,7 +1053,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     }
 
     function autoSave(){
-      if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user') )){}
+      if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user').id )){}
       else {
           voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
           voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
@@ -1064,7 +1064,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     //listeners
     function onWindowBeforeUnload(event) {
         if(reloadFlag === 0){            
-            if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user') )){}
+            if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user').id )){}
             else if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id ))) || !AV.User.current) {
                 voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
                 voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
@@ -1080,7 +1080,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
     function onWindowReload(event) {
         reloadFlag = 1;
-        if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user') )){}
+        if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user').id )){}
         else if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
             voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
             voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
