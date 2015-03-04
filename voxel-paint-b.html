@@ -19,10 +19,11 @@
             <h4 class="modal-title"  id="signInModalLabel">注册</h4>
           </div>
           <div class="modal-body">
+            <form>
             <div class="alert alert-danger" role="alert"><label id="signInError"></label></div>
-            <div class="form-group"><label for="signInEmail">邮箱</label><input type="text" class="form-control" id="signInEmail"/></div>
+            <div class="form-group"><label for="signInEmail">邮箱</label><input type="text" name="email" class="form-control" id="signInEmail"/></div>
             <div class="form-group"><label for="signInUsername">用户名</label><input type="text" class="form-control" id="signInUsername"/></div>
-            <div class="form-group"><label for="signInPassword">密码</label><input type="password" class="form-control" id="signInPassword"/></div>
+            <div class="form-group"><label for="signInPassword">密码</label><input type="password" class="form-control" id="signInPassword"/></div></form>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
@@ -39,9 +40,11 @@
             <h4 class="modal-title"  id="loginModalLabel">登录</h4>
           </div>
           <div class="modal-body">
+            <form>
             <div class="alert alert-danger" role="alert"><label id="loginError"></label></div>
-            <div class="form-group"><label for="loginUsername">用户名\邮箱</label><input type="text" class="form-control" id="loginUsername"/></div>
-            <div class="form-group"><label for="loginPassword">密码</label><input type="password" class="form-control" id="loginPassword"/></div>
+            <div class="form-group"><label for="loginUsername">用户名\邮箱</label><input type="text" name="email" class="form-control" id="loginUsername"/></div>
+            <div class="form-group"><label for="loginPassword">密码</label><input type="password" name="password" class="form-control" id="loginPassword"/></div>
+          </form>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
@@ -58,10 +61,18 @@
             <h4 class="modal-title"  id="openModalLabel">选择文件</h4>
           </div>
           <div class="modal-body">
-            <div class="button-group-vertical" id="myBox" data-toggle="buttons">
+            <div class="button-group-vertical" data-toggle="buttons">
+            <div>
+              <span id="boxTitle"></span>
             </div>
-            <div class="button-group-vertical" id="myKeep" data-toggle="buttons">
+            <div id="myBox">
             </div>
+            <div>
+              <span id="keepTitle"></span>
+            </div>
+            <div id="myKeep">
+            </div>
+          </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>

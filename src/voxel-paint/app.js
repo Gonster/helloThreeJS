@@ -768,7 +768,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#signInUsername').val('');
             $('#signInPassword').val('');
             $('#signInError').parent().hide();
-            $('#signInModal').modal('show');
+            $('#signInModal').modal('show');            
+            $('#signInEmail').focus();
 
         },     
         'loginOpener': function(){
@@ -776,6 +777,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#loginPassword').val('');
             $('#loginError').parent().hide();
             $('#loginModal').modal('show');
+            $('#loginUsername').focus();
         },   
         'logout': function(){
             if (AV.User.current()) {
@@ -884,6 +886,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             query2.equalTo('user', AV.User.current());
 
             selectModalInit(query.find(), query2.find());
+
+            $('#openModal .modal-body #boxTitle').text('我的文件');
+            $('#openModal .modal-body #keepTitle').text('我的收藏');
         },
         share: function() {
             document.getElementById('openIt').addEventListener('click', onShareItClick, false);
@@ -891,11 +896,15 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             query.select('name');
             query.equalTo('user', AV.User.current());
             selectModalInit(query.find());
+
+            $('#openModal .modal-body #boxTitle').text('我的文件');
+            $('#openModal .modal-body #keepTitle').html('分享链接：<input type="text" id="shareLink">');
         }
     };
 
     function selectModalInit(myPromise, keptPromise) {
-           myPromise || myPromise.then(
+            if(myPromise) 
+            myPromise.then(
                 function(results){
                     $('#openModal .modal-body #myBox').html('');
                     for(var i = 0, l = results.length;i < l; i++) {
@@ -910,17 +919,18 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     $('#openModal').modal('show');
                 }
             );
-           keptPromise || keptPromise.then(
+           if(keptPromise)
+           keptPromise.then(
                 function(results){
                     $('#openModal .modal-body #myKeep').html('');
                     for(var i = 0, l = results.length;i < l; i++) {
                         $('#openModal .modal-body #myKeep').append(
                           '<label class="btn btn-primary">'
-                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+results[i].id+'" autocomplete="off">'
+                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+results[i].get('box').id+'" autocomplete="off">'
                           + '  <label id="boxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#openModal .modal-body .button-group-vertical #boxDataLabel'+i).text(results[i].get('name'));
+                        $('#openModal .modal-body .button-group-vertical #boxDataLabel'+i).text(results[i].get('box').get('name'));
                     }
                     $('#openModal').modal('show');
                 }
@@ -1793,6 +1803,13 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         });
     }
 
+    $('#loginUsername').on('keyup', function(event){
+        if(event.which===13) document.getElementById('login').click();
+    });
+    $('#loginPassword').on('keyup', function(event){
+        if(event.which===13) document.getElementById('login').click();
+    });
+
    function onSignInClick() {
         var email = $('#signInEmail').val();
         var username = $('#signInUsername').val();
@@ -1862,7 +1879,30 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         
     }
 
-    function onShareItClick() {
+    function onShareItClick() {AV
+        document.getElementById('openIt').removeEventListener('click', onShareItClick, false);
+        var oi = $('#openModal input[type=radio]:checked').val();
+        if(oi) {
+            var query = new AV.Query(Box);
+            query.equalTo('objectId', oi);
+            query.select('ACL');
+            query.find().then(
+                function(currentBox) {
+                    if(!currentBox.getACL().getPublicReadAccess()){
+                        var acl = new AV.ACL(AV.User.current());
+                        acl.setPublicReadAccess(true);
+                        currentBox.setACL(acl);
+                        currentBox.save().then{
+                            function(){},
+                            function(){
+                                bubble('分享失败');
+                            }
+                        }
+                    }
+                    $('#shareLink').val('http://gonster.github.io/helloThreeJS/voxel-paint#'+oi);
+                    bubble('分享成功，可通过显示的链接打开分享内容');
+                }
+            );
 
     }
 
@@ -1893,6 +1933,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         }
     }
 
+
+    
     if (AV.User.current()) {
         loginTrigger(true);
         voxelPaintStorageManager.loadRemote();
@@ -1901,5 +1943,6 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         loginTrigger(false);
         voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
     }
+    
 
 })( window, document, Base, THREE, Detector );
