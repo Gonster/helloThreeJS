@@ -290,9 +290,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             var updateAt = this.load(this.storageKeys.updateAt);
             if(boxId) {
                 bubble('载入云端文件...');
-                var query = AV.Query(Box);
-                query.select('name');
-                query.select('user');
+                var query = new AV.Query(Box);
+                query.select('name', 'user');
                 query.equalTo('objectId', boxId)
                 query.find({
                     success: function(retrievedBox) {
@@ -308,7 +307,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                             if(retrievedBox.get('user').id === AV.User.current().id) {
                                 var localChanges = actionRecorder.changed = voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.localChanges);
                                 if(localChanges === '0') {
-                                    var q = AV.Query(Box);
+                                    var q = new AV.Query(Box);
                                     q.get(retrievedBox.id, {
                                         success: function(currentBox) {
                                             box = currentBox;
@@ -328,7 +327,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                                 }
                             }
                             else{
-                                var q = AV.Query(Box);
+                                var q = new  AV.Query(Box);
                                 q.get(retrievedBox.id, {
                                     success: function(currentBox) {
                                         box = currentBox;
