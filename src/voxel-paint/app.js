@@ -172,7 +172,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             'camera': 'vp_camera',
             'sidebar': 'vp_sidebar',
             'boxId': 'vp_box_id',
-            'updateAt': 'vp_updateAt',
+            'updatedAt': 'vp_updatedAt',
             'boxName': 'vp_box_name',
             'localChanges': 'vp_local_changes'
         },
@@ -287,7 +287,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'loadRemote': function loadRemote() {
             if( ! window.localStorage ) return;
             var boxId = this.load(this.storageKeys.boxId);
-            var updateAt = this.load(this.storageKeys.updateAt);
+            var updatedAt = this.load(this.storageKeys.updatedAt);
             if(boxId) {
                 bubble('载入云端文件...');
                 var query = new AV.Query(Box);
@@ -295,7 +295,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 query.equalTo('objectId', boxId)
                 query.find({
                     success: function(retrievedBox) {
-                        if(retrievedBox.get('updateAt') === updateAt) {
+                        if(retrievedBox.get('updatedAt') === updatedAt) {
                             box = retrievedBox;
                             retrievedBox.set('meshes', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.meshes));
                             retrievedBox.set('camera', voxelPaintStorageManager.load(VoxelPaintStorageManager.storageKeys.camera));
@@ -506,7 +506,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             if(AV.User.current() && box && box.get('user') && (AV.User.current().id !==  box.get('user').id)) {
                 box = new Box();
                 voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updateAt,'');
+                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt,'');
                 voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');                
             }
             this.changed = 1;
@@ -807,7 +807,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 box.save({
                     success: function(box) {
                         bubble('已保存至云端');
-                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updateAt, box.get('updateAt'));
+                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt, box.get('updatedAt'));
                         voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId, box.id);
                         voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name'));
                     },
