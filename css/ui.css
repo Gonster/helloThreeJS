@@ -103,6 +103,20 @@
 #keepTitle {
 	padding-top: 15px; 
 }
+#currentFileName {
+	border: none;
+	background-color: transparent;
+	opacity: 0.6;
+	width: 100%;
+	padding: 0 10px 4px 0;
+}
+#currentFileState {
+	border: none;
+	background-color: transparent;
+	opacity: 0.6;
+	width: 100%;
+	padding: 0 10px 4px 0;
+}
 
 #bubble {
 	position: absolute;

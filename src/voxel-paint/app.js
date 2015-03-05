@@ -17,10 +17,7 @@ var fragmentShader = 'uniform vec3 topColor;'
     +    'float h = normalize( vWorldPosition + offset ).y;'
     +    'gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );'
     +'}';
-   
-function bubble(info) {
-    GoUI.Animation.bubble($('#bubble'), info);
-} 
+
 
 AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512vitlk5in4c4a95acbyj8qiqlgcuh3p9xm5t");
 
@@ -384,6 +381,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
                     voxelPaintStorageManager.loadCamera(box.get('camera'), true);
                     voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+
+                    bubble('已载入分享文件');
                 },
                 error: function(currentBox, error) {
                     errorCallback();
@@ -1943,6 +1942,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#loginMessage').show();
             $('#open').removeAttr('disabled');
             $('#newFile').removeAttr('disabled');
+            $('#share').removeAttr('disabled');
+            $('#delete').removeAttr('disabled');
+            $('#insert').removeAttr('disabled');
         }
         else{
             $('#loginOpener').show();
@@ -1951,10 +1953,24 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#loginMessage').hide();
             $('#open').attr('disabled', 'disabled');
             $('#newFile').attr('disabled', 'disabled');
+            $('#share').attr('disabled', 'disabled');
+            $('#delete').attr('disabled', 'disabled');
+            $('#insert').attr('disabled', 'disabled');
         }
     }
 
 
+    function updateFileInfo() {
+        var filename = box.name || '未命名';
+        var filestate = (actionRecorder.changed === '0' ? '未修改' : '已修改') + (box.id ? ' - 云端存储' : ' - 本地存储');
+        $('#currentFileName').text('文件名：'+filename);    
+        $('#currentFileState').text('文件状态：'+filestate);
+    }
+
+    function bubble(info) {
+        GoUI.Animation.bubble($('#bubble'), info);
+        updateFileInfo();
+    }
     
     
     if (AV.User.current()) {
