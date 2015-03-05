@@ -934,7 +934,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                           + '  <label id="boxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#openModal .modal-body .button-group-vertical #boxDataLabel'+i).text(results[i].get('name'));
+                        $('#openModal .modal-body .button-group #boxDataLabel'+i).text(results[i].get('name'));
                     }
                     $('#openModal').modal('show');
                 }
@@ -950,7 +950,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                           + '  <label id="boxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#openModal .modal-body .button-group-vertical #boxDataLabel'+i).text(results[i].get('box').get('name'));
+                        $('#openModal .modal-body .button-group #boxDataLabel'+i).text(results[i].get('box').get('name'));
                     }
                     $('#openModal').modal('show');
                 }
@@ -1960,8 +1960,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     if (AV.User.current()) {
         loginTrigger(true);
 
+        var shareHash = window.location.hash;
         if(shareHash) {
-            var shareHash = window.location.hash;
             shareHash = shareHash.substring(1);
             voxelPaintStorageManager.loadShared(shareHash, function() {                
                 bubble('载入分享文件失败');
@@ -1975,8 +1975,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     else {
         loginTrigger(false);
 
+        var shareHash = window.location.hash;
         if(shareHash) {
-            var shareHash = window.location.hash;
             shareHash = shareHash.substring(1);
             voxelPaintStorageManager.loadShared(shareHash, function() {
                 bubble('载入分享文件失败');
