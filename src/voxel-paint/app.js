@@ -24,7 +24,7 @@ function bubble(info) {
 
 AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512vitlk5in4c4a95acbyj8qiqlgcuh3p9xm5t");
 
-(function( window, document, Base, THREE, Detector ){
+(function( window, document, Base, THREE, Detector ) {
     //login alert flag
     var loginAlertFlag = false;
 
@@ -376,6 +376,20 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
             }
         },
+        'loadShared': function loadShared(objectId, errorCallback) {
+            var q = new  AV.Query(Box);
+            q.get(objectId, {
+                success: function(currentBox) {
+                    box = currentBox;
+
+                    voxelPaintStorageManager.loadCamera(box.get('camera'), true);
+                    voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                },
+                error: function(currentBox, error) {
+                    errorCallback();
+                }
+            });
+        },
         'loadCamera': function loadCamera(key, isNotLocalStorage) {
             var loadDataArray = []; 
             {
@@ -528,11 +542,17 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             this.currentActionIndex++;
             this.updateDom();
             if(AV.User.current() && box && box.get('user') && (AV.User.current().id !==  box.get('user').id)) {
-                box = new Box();
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt,'');
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName,'');       
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges,'1');                
+                if(confirm('确定要修改吗？（将会作为新建的文件覆盖本地保存的数据）')){
+                    box = new Box();
+                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');
+                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt,'');
+                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName,'');       
+                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges,'1');     
+                }
+                else{
+                    this.undo();
+                    return;
+                }
             }
             this.changed = 1;
         },
@@ -1879,7 +1899,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         
     }
 
-    function onShareItClick() {AV
+    function onShareItClick() {
         document.getElementById('openIt').removeEventListener('click', onShareItClick, false);
         var oi = $('#openModal input[type=radio]:checked').val();
         if(oi) {
@@ -1892,18 +1912,18 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                         var acl = new AV.ACL(AV.User.current());
                         acl.setPublicReadAccess(true);
                         currentBox.setACL(acl);
-                        currentBox.save().then{
+                        currentBox.save().then(
                             function(){},
                             function(){
                                 bubble('分享失败');
                             }
-                        }
+                        );
                     }
                     $('#shareLink').val('http://gonster.github.io/helloThreeJS/voxel-paint#'+oi);
                     bubble('分享成功，可通过显示的链接打开分享内容');
                 }
             );
-
+        }
     }
 
     document.getElementById('login').addEventListener('click', onLoginClick, false);
@@ -1935,14 +1955,46 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
 
     
+    
     if (AV.User.current()) {
         loginTrigger(true);
-        voxelPaintStorageManager.loadRemote();
+
+        if(shareHash) {
+            var shareHash = window.location.hash;
+            shareHash = shareHash.substring(1);
+            voxelPaintStorageManager.loadShared(shareHash, function() {                
+                bubble('载入分享文件失败');
+                voxelPaintStorageManager.loadRemote();
+            });
+        }
+        else{
+            voxelPaintStorageManager.loadRemote();
+        }
     } 
     else {
         loginTrigger(false);
-        voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+
+        if(shareHash) {
+            var shareHash = window.location.hash;
+            shareHash = shareHash.substring(1);
+            voxelPaintStorageManager.loadShared(shareHash, function() {
+                bubble('载入分享文件失败');
+                voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+            });
+        }
+        else{
+            voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+        }
     }
     
+    window.addEventListener("hashchange", function(){
+        var shareHash = window.location.hash;
+        if(shareHash) {
+            shareHash = shareHash.substring(1);
+            voxelPaintStorageManager.loadShared(shareHash, function(){
+                bubble('载入分享文件失败');
+            });
+        }
+    }, false);
 
-})( window, document, Base, THREE, Detector );
+})( window, document, Base, THREE, Detector);
