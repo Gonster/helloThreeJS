@@ -1906,7 +1906,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             var query = new AV.Query(Box);
             query.equalTo('objectId', oi);
             query.select('shared');
-            query.find().then(
+            query.first().then(
                 function(currentBox) {
                     if(!currentBox.get('shared')){
                         var acl = new AV.ACL(AV.User.current());
