@@ -100,12 +100,17 @@
 	width: 100%;
 }
 
-.alert-vp {
-	margin-bottom: 0;
+#bubble {
+	position: absolute;
 	top: 10px;
+	width: 100%;
+}
+.alert-vp {
+	margin-bottom: 5px;
+	top: auto;
 	width: 10%;
 	left: 45%;
-	position: absolute;
+	position: relative;
 	padding: 5px;
 	background-color: rgba(0, 0, 0, 0.4);
 	border-color: rgba(0, 0, 0, 0.2);
@@ -122,7 +127,7 @@
 		top: 10px;
 		width: 50%;
 		left: 25%;
-		position: absolute;
+		position: relative;
 		padding: 5px;
 		background-color: rgba(0, 0, 0, 0.2);
 		border-color: rgba(0, 0, 0, 0.2);
