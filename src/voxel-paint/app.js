@@ -1905,13 +1905,14 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         if(oi) {
             var query = new AV.Query(Box);
             query.equalTo('objectId', oi);
-            query.select('ACL');
+            query.select('shared');
             query.find().then(
                 function(currentBox) {
-                    if(!currentBox.getACL().getPublicReadAccess()){
+                    if(!currentBox.get('shared')){
                         var acl = new AV.ACL(AV.User.current());
                         acl.setPublicReadAccess(true);
                         currentBox.setACL(acl);
+                        currentBox.set('shared', true);
                         currentBox.save().then(
                             function(){},
                             function(){
