@@ -950,8 +950,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             query.equalTo('user', AV.User.current());
 
             var query2 = new AV.Query(Keep);
-            // query2.select('name');
-            query2.include(['box.name', 'box.user.name']);
+            query2.select('name');
+            query2.select(['box.name', 'box.user.name']);
             query2.equalTo('user', AV.User.current());
 
             selectModalInit(query.find(), query2.find());
@@ -976,8 +976,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             query.equalTo('user', AV.User.current());
 
             var query2 = new AV.Query(Keep);
-            // query2.select('name');
-            query2.include(['box.name', 'box.user.name']);
+            query2.select('name');
+            query2.select(['box.name', 'box.user.name']);
             query2.equalTo('user', AV.User.current());
 
             selectModalInit(query.find(), query2.find(), undefined, undefined, true);
@@ -1033,8 +1033,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
           query.equalTo('user', AV.User.current());
 
           var query2 = new AV.Query(Keep);
-          // query2.select('name');
-          query2.include(['box.name', 'box.user.name']);
+          query2.select('name');
+          query2.select(['box.name', 'box.user.name']);
           query2.equalTo('user', AV.User.current());
 
           selectModalInit(query.find(), query2.find());
@@ -1072,7 +1072,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     for(var i = 0, l = results.length;i < l; i++) {
                         $('#'+modalId+' .modal-body #'+bodyIds[1]).append(
                           '<label class="btn btn-primary">'
-                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+(isKeepIdUsed ? results[i].id : results[i].get('box').id)+'" autocomplete="off">'
+                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+(isKeepIdUsed ? results[i].id : (results[i].get('box')?results[i].get('box').id) : '-1')+'" autocomplete="off">'
                           + '  <label id="boxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
@@ -1990,6 +1990,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     }
 
     function onOpenItClick() {
+        var oi = $('#openModal input[type=radio]:checked').val();
+        if(oi === '-1') { bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
         document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
         if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
 
@@ -2000,7 +2002,6 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             }
         }
 
-        var oi = $('#openModal input[type=radio]:checked').val();
         if(oi) {
             var query = new AV.Query(Box);
             query.get( oi, {
@@ -2111,6 +2112,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         document.getElementById('openIt').removeEventListener('click', onIsertItClick, false);
 
         var oi = $('#openModal input[type=radio]:checked').val();
+        if(oi === '-1') { bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
         if(oi) {
             var query = new AV.Query(Box);
             query.get( oi, {
