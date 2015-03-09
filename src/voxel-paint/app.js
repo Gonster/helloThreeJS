@@ -1058,11 +1058,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     for(var i = 0, l = results.length;i < l; i++) {
                         $('#'+modalId+' .modal-body #'+bodyIds[0]).append(
                           '<label class="btn btn-primary">'
-                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+results[i].id+'" autocomplete="off">'
-                          + '  <label id="boxDataLabel'+i+'"></label>'
+                          + '  <input type="radio" name="boxData" id="myBoxData'+i+'" value="'+results[i].id+'" autocomplete="off">'
+                          + '  <label id="myBoxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#'+modalId+' .modal-body #boxDataLabel'+i).text(results[i].get('name'));
+                        $('#'+modalId+' .modal-body #myBoxDataLabel'+i).text(results[i].get('name'));
                     }
                     if(results.length < 1) $('#openModal .modal-body #boxTitle').hide();
                     else $('#openModal .modal-body #boxTitle').show();
@@ -1075,11 +1075,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     for(var i = 0, l = results.length;i < l; i++) {
                         $('#'+modalId+' .modal-body #'+bodyIds[1]).append(
                           '<label class="btn btn-primary">'
-                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+(isKeepIdUsed ? results[i].id : (results[i].get('box') ? results[i].get('box').id : '-1'))+'" autocomplete="off">'
-                          + '  <label id="boxDataLabel'+i+'"></label>'
+                          + '  <input type="radio" name="boxData" id="keepBoxData'+i+'" value="'+(isKeepIdUsed ? results[i].id : (results[i].get('box') ? results[i].get('box').id : '-1'))+'" autocomplete="off">'
+                          + '  <label id="keepBoxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#'+modalId+' .modal-body #boxDataLabel'+i).text(results[i].get('name')+ (results[i].get('box') ? '('+results[i].get('box').get('user').get('name')+'/'+results[i].get('box').get('name')+')' : ''));
+                        $('#'+modalId+' .modal-body #keepBoxDataLabel'+i).text(results[i].get('name')+ (results[i].get('box') ? '('+results[i].get('box').get('user').get('username')+'/'+results[i].get('box').get('username')+')' : ''));
                     }
                     if(results.length < 1) $('#openModal .modal-body #keepTitle').hide();
                     else $('#openModal .modal-body #keepTitle').show();
