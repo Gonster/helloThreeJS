@@ -358,7 +358,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                             box = retrievedBox;
                             if(retrievedBox.get('user').id === AV.User.current().id) {
                                 var localChanges = actionRecorder.changed = voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.localChanges);
-                                if(localChanges === '0' || (localChanges !== '0' && confirm('上次关闭前可能未完成保存，是否载入？'))) {
+                                if(localChanges === '0' || (localChanges !== '0' && confirm('上次关闭前可能未完成保存，是否载入云端文件？若取消则将本地版本视为新文件'))) {
                                     var q = new AV.Query(Box);
                                     q.get(retrievedBox.id, {
                                         success: function(currentBox) {
