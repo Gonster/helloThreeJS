@@ -358,7 +358,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                             box = retrievedBox;
                             if(retrievedBox.get('user').id === AV.User.current().id) {
                                 var localChanges = actionRecorder.changed = voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.localChanges);
-                                if(localChanges === '0') {
+                                if(localChanges === '0' || (localChanges !== '0' && confirm('上次关闭前可能未完成保存，是否载入？'))) {
                                     var q = new AV.Query(Box);
                                     q.get(retrievedBox.id, {
                                         success: function(currentBox) {
@@ -382,6 +382,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                                     });
                                 }
                                 else{
+
                                     box = new Box();
                                     voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');
                                     voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt,'');
@@ -392,6 +393,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                                     voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
 
                                     bubble('由于本地此文件与云端文件在同一文件的基础上做了不同的改动，将本地版本与云端此文件视为不同的文件');
+
                                 }
                             }
                             else{
@@ -1304,9 +1306,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 voxelPaintStorageManager.save();
             }
             else{
-                event.preventDefault();
-                confirm();
-                return '文件未保存，确定要退出吗？';
+                sidebarParams.save();
             }
         }
     }
@@ -1321,8 +1321,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             voxelPaintStorageManager.save();
         }
         else{
-            event.preventDefault();
-            return '文件未保存，确定要退出吗？';
+                if(confirm('是否保存当前文件？')) {
+                    sidebarParams.save();
+                }
         }
     }
 
