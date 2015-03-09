@@ -1304,6 +1304,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 voxelPaintStorageManager.save();
             }
             else{
+                event.preventDefault();
                 return '文件未保存，确定要退出吗？';
             }
         }
@@ -1319,6 +1320,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             voxelPaintStorageManager.save();
         }
         else{
+            event.preventDefault();
             return '文件未保存，确定要退出吗？';
         }
     }
