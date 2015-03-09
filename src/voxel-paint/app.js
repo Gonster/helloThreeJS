@@ -951,7 +951,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
             var query2 = new AV.Query(Keep);
             query2.select('name');
-            query2.select(['box.name', 'box.user.name']);
+            query2.select('box.name', 'box.user.name');
             query2.equalTo('user', AV.User.current());
 
             selectModalInit(query.find(), query2.find());
@@ -977,7 +977,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
             var query2 = new AV.Query(Keep);
             query2.select('name');
-            query2.select(['box.name', 'box.user.name']);
+            query2.select('box.name', 'box.user.name');
             query2.equalTo('user', AV.User.current());
 
             selectModalInit(query.find(), query2.find(), undefined, undefined, true);
@@ -1034,7 +1034,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
           var query2 = new AV.Query(Keep);
           query2.select('name');
-          query2.select(['box.name', 'box.user.name']);
+          query2.select('box.name', 'box.user.name');
           query2.equalTo('user', AV.User.current());
 
           selectModalInit(query.find(), query2.find());
