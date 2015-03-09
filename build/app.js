@@ -2752,6 +2752,12 @@ THREE.OrbitControls = function ( object, domElement, settings ) {
 	// force an update at start
 	this.update();
 
+	this.removeKeyEventListener = function (){
+		window.removeEventListener( 'keydown', onKeyDown, false );
+	}
+	this.addKeyEventListener = function (){
+		window.addEventListener( 'keydown', onKeyDown, false );
+	}
 };
 
 THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
@@ -3270,11 +3276,17 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
     var box = new Box();
 
+    var insertBox = undefined;
+
     var Keep = AV.Object.extend('Keep');
 
     var keep = new Keep();
 
     //utils
+    function isFileOfOthers() {
+        return (AV.User.current() && box && box.get('user') && (AV.User.current().id !== box.get('user').id));
+    }
+
     function iterateTextures( isReversed ){
         var textureId = sidebarParams['textures'] + ((isReversed) ? -1 : 1 )
         var radio = document.getElementById('texture'+textureId);
@@ -3519,6 +3531,47 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 voxelAnimationManager.endFlag = true;
             }
         },
+        'loadMeshesTo': function loadMeshes(dataString, meshes) {
+            var loadDataArray = []; 
+            var boxWidth = DEFAULT_BOX.width; 
+            {
+                var load = dataString;
+                if(load) {
+                    var array = load.split(':');
+                    if(array){
+                        if(array.length === 2){
+                            boxWidth = ( Number(array[0]) || 50 ) / DEFAULT_BOX.width;
+                            loadDataArray = array[1].split(';');
+                        }
+                        else{
+                            boxWidth = 50 / DEFAULT_BOX.width;
+                            loadDataArray = array[0].split(';');
+                        }
+                    }
+                }
+            }
+            if(loadDataArray.length > 0){
+                for(var i = 0, l = loadDataArray.length; i < l; i++){
+                    var currentData = loadDataArray[i].split(',');
+                    if( currentData.length > 2 ){
+
+                        var geoIndex = Number(currentData[0]) || 0;
+                        var currentBoxGeometryParent = geometries[geoIndex];
+                    
+                        var materialIndex = Number(currentData[1]) || 0;
+                        var currentBoxMaterialParent = materials[materialIndex];
+
+                        var currentBoxGeometry = currentBoxGeometryParent.data;
+                        var currentBoxMaterial = currentBoxMaterialParent.data;
+
+                        var currentCube = new THREE.Mesh( currentBoxGeometry, currentBoxMaterial );
+                        currentCube.position.set(Number(currentData[2]) / boxWidth, Number(currentData[3]) / boxWidth, Number(currentData[4]) / boxWidth);
+                        meshes.push(currentCube);
+                    }
+                }
+            }
+            return meshes;
+        },
         'loadRemote': function loadRemote() {
             if( ! window.localStorage ) return;
             var boxId = this.load(this.storageKeys.boxId);
@@ -3530,22 +3583,22 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 query.equalTo('objectId', boxId)
                 query.first({
                     success: function(retrievedBox) {
-                        if(retrievedBox.updatedAt === updatedAt) {
+                        if(retrievedBox.updatedAt.toString() === updatedAt) {
                             box = retrievedBox;
                             retrievedBox.set('meshes', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.meshes));
-                            retrievedBox.set('camera', voxelPaintStorageManager.load(VoxelPaintStorageManager.storageKeys.camera));
-
-                            voxelPaintStorageManager.loadCamera(box.get('camera'), true);
-                            voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                            retrievedBox.set('camera', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.camera));
 
                             voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name'));
                             actionRecorder.changed = voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.localChanges);
+
+                            voxelPaintStorageManager.loadCamera(box.get('camera'), true);
+                            voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
                         }
                         else{
                             box = retrievedBox;
                             if(retrievedBox.get('user').id === AV.User.current().id) {
                                 var localChanges = actionRecorder.changed = voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.localChanges);
-                                if(localChanges === '0') {
+                                if(localChanges === '0' || (localChanges !== '0' && confirm('上次关闭前可能未完成保存，是否载入？'))) {
                                     var q = new AV.Query(Box);
                                     q.get(retrievedBox.id, {
                                         success: function(currentBox) {
@@ -3562,14 +3615,13 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                                         },
                                         error: function(currentBox, error) {
                                             retrievedBox.set('meshes', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.meshes));
-                                            retrievedBox.set('camera', voxelPaintStorageManager.load(VoxelPaintStorageManager.storageKeys.camera));
+                                            retrievedBox.set('camera', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.camera));
 
                                             voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
                                         }
                                     });
                                 }
                                 else{
-                                    bubble('由于本地此文件与云端文件在同一文件的基础上做了不同的改动，将本地版本与云端此文件视为不同的文件');
 
                                     box = new Box();
                                     voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');
@@ -3579,6 +3631,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                                     this.changed = 1;
 
                                     voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+
+                                    bubble('由于本地此文件与云端文件在同一文件的基础上做了不同的改动，将本地版本与云端此文件视为不同的文件');
+
                                 }
                             }
                             else{
@@ -3774,13 +3829,14 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             this.actionArray.push(action);
             this.currentActionIndex++;
             this.updateDom();
-            if(AV.User.current() && box && box.get('user') && (AV.User.current().id !==  box.get('user').id)) {
+            if(isFileOfOthers()) {
                 if(confirm('确定要修改吗？（将会作为新建的文件覆盖本地保存的数据）')){
                     box = new Box();
                     voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');
                     voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt,'');
                     voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName,'');       
                     voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges,'1');     
+                    bubble('已根据当前内容新建文件');
                 }
                 else{
                     this.undo();
@@ -3788,6 +3844,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 }
             }
             this.changed = 1;
+            updateFileInfo();
         },
         'appendObjectToCurrentAction': function(actionType, mesh) {
             var currentAction = this.actionArray[this.currentActionIndex];
@@ -3908,9 +3965,6 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
 
     //constants
-
-
-
     var DRAW_VOXEL_SAME_CUBE_DEFINITION = 3;
     THREE.ImageUtils.crossOrigin = 'Anonymous';
     var base;
@@ -4066,7 +4120,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                         var name =  prompt('请输入文件名', box.get('name') || voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.boxName) || '未命名');
                         box.set('name', name || '未命名');
                         box.set('user', AV.User.current());
-                        box.set('ACL', new AV.ACL(AV.User.current()));
+                        box.setACL(new AV.ACL(AV.User.current()));
                     }
                     box.save({
                         success: function(box) {
@@ -4128,9 +4182,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             bubble('新建'); 
         },
         'open': function() {
-
             document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
-            document.getElementById('openIt').removeEventListener('click', onShareItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onDeleteItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
 
             document.getElementById('openIt').addEventListener('click', onOpenItClick, false);
             var query = new AV.Query(Box);
@@ -4138,7 +4192,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             query.equalTo('user', AV.User.current());
 
             var query2 = new AV.Query(Keep);
-            query2.select('name', 'box');
+            query2.select('name');
+            query2.select('box.name', 'box.user.username');
+            query2.include('box.name', 'box.user.username');
             query2.equalTo('user', AV.User.current());
 
             selectModalInit(query.find(), query2.find());
@@ -4147,53 +4203,132 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#openModal .modal-body #keepTitle').text('我的收藏');
         },
         share: function() {
-            document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
-            document.getElementById('openIt').removeEventListener('click', onShareItClick, false);
-
-            document.getElementById('openIt').addEventListener('click', onShareItClick, false);
             var query = new AV.Query(Box);
             query.select('name');
             query.equalTo('user', AV.User.current());
-            selectModalInit(query.find());
+            selectModalInit(query.find(), undefined, 'shareModal', ['boxToShare']);
+        },
+        delete: function() {
+            document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onDeleteItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
+
+            document.getElementById('openIt').addEventListener('click', onDeleteItClick, false);
+            var query = new AV.Query(Box);
+            query.select('name');
+            query.equalTo('user', AV.User.current());
+
+            var query2 = new AV.Query(Keep);
+            query2.select('name');
+            query2.select('box.name', 'box.user.username');
+            query2.include('box.name', 'box.user.username');
+            query2.equalTo('user', AV.User.current());
+
+            selectModalInit(query.find(), query2.find(), undefined, undefined, true);
 
             $('#openModal .modal-body #boxTitle').text('我的文件');
-            $('#openModal .modal-body #keepTitle').html('<div>分享链接：</div><input type="text" id="shareLink">');
+            $('#openModal .modal-body #keepTitle').text('我的收藏');
+        },
+        keep: function() {
+            if( box && box.id ) {
+                var keepingBox = AV.Object.createWithoutData('Box', box.id);
+                var query = new AV.Query(Keep);
+                query.equalTo('user', AV.User.current());
+                query.equalTo('box', keepingBox);
+                query.count().then(
+                    function(count) {
+                        if(count > 0) {
+                            bubble('您已收藏过此文件');
+                        }
+                        else{
+                            var keep = new Keep();
+                            keep.set('box', keepingBox);
+                            keep.set('name', prompt('收藏名称'));
+                            keep.set('user', AV.User.current());
+                            keep.setACL(new AV.ACL(AV.User.current()));
+                            keep.save().then(
+                                function(){                                    
+                                    bubble('已收藏');
+                                },
+                                function(){
+                                    bubble('收藏失败');
+                                }
+                            );
+                        }
+                    },
+                    function(error) {
+                        bubble('收藏失败');
+                    }
+                );
+
+            }
+            else {
+                bubble('只能收藏已保存的文件');
+            }
+        },
+        insert: function() {
+          document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
+          document.getElementById('openIt').removeEventListener('click', onDeleteItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
+
+          document.getElementById('openIt').addEventListener('click', onInsertItClick, false);
+          var query = new AV.Query(Box);
+          query.select('name');
+          query.equalTo('user', AV.User.current());
+
+          var query2 = new AV.Query(Keep);
+          query2.select('name');
+          query2.select('box.name', 'box.user.username');
+          query2.include('box.name', 'box.user.username');
+          query2.equalTo('user', AV.User.current());
+
+          selectModalInit(query.find(), query2.find());
+
+          $('#openModal .modal-body #boxTitle').text('我的文件');
+          $('#openModal .modal-body #keepTitle').text('我的收藏');  
         }
     };
 
-    function selectModalInit(myPromise, keptPromise) {
+    function selectModalInit(myPromise, keptPromise, modalIdO, bodyIdsO, isKeepIdUsed) {
+            var modalId = modalIdO || 'openModal';
+            var bodyIds = bodyIdsO || ['myBox', 'myKeep'];
+
             if(myPromise) 
             myPromise.then(
                 function(results){
-                    $('#openModal .modal-body #myBox').html('');
+                    $('#'+modalId+' .modal-body #'+bodyIds[0]).html('');
                     for(var i = 0, l = results.length;i < l; i++) {
-                        $('#openModal .modal-body #myBox').append(
+                        $('#'+modalId+' .modal-body #'+bodyIds[0]).append(
                           '<label class="btn btn-primary">'
-                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+results[i].id+'" autocomplete="off">'
-                          + '  <label id="boxDataLabel'+i+'"></label>'
+                          + '  <input type="radio" name="boxData" id="myBoxData'+i+'" value="'+results[i].id+'" autocomplete="off">'
+                          + '  <label id="myBoxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#openModal .modal-body #boxDataLabel'+i).text(results[i].get('name'));
+                        $('#'+modalId+' .modal-body #myBoxDataLabel'+i).text(results[i].get('name'));
                     }
-                    $('#openModal').modal('show');
+                    if(results.length < 1) $('#openModal .modal-body #boxTitle').hide();
+                    else $('#openModal .modal-body #boxTitle').show();
                 }
             );
            if(keptPromise)
            keptPromise.then(
                 function(results){
-                    $('#openModal .modal-body #myKeep').html('');
+                    $('#'+modalId+' .modal-body #'+bodyIds[1]).html('');
                     for(var i = 0, l = results.length;i < l; i++) {
-                        $('#openModal .modal-body #myKeep').append(
+                        $('#'+modalId+' .modal-body #'+bodyIds[1]).append(
                           '<label class="btn btn-primary">'
-                          + '  <input type="radio" name="boxData" id="boxData'+i+'" value="'+results[i].get('box').id+'" autocomplete="off">'
-                          + '  <label id="boxDataLabel'+i+'"></label>'
+                          + '  <input type="radio" name="boxData" id="keepBoxData'+i+'" value="'+(isKeepIdUsed ? results[i].id : (results[i].get('box') ? results[i].get('box').id : '-1'))+'" autocomplete="off">'
+                          + '  <label id="keepBoxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#openModal .modal-body #boxDataLabel'+i).text(results[i].get('box').get('name'));
+                        $('#'+modalId+' .modal-body #keepBoxDataLabel'+i).text(results[i].get('name')+ (results[i].get('box') ? '('+results[i].get('box').get('user').get('username')+'/'+results[i].get('box').get('name')+')' : ''));
                     }
-                    $('#openModal').modal('show');
+                    if(results.length < 1) $('#openModal .modal-body #keepTitle').hide();
+                    else $('#openModal .modal-body #keepTitle').show();
                 }
             );
+
+            $('#'+modalId+'').modal('show');
 
     }
 
@@ -4388,7 +4523,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     }
 
     function autoSave(){
-      if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user').id )){}
+      if(isFileOfOthers()){}
       else {
           voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, actionRecorder.changed);
           voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
@@ -4404,23 +4539,21 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     //listeners
     function onWindowBeforeUnload(event) {
         if(reloadFlag === 0){            
-            if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user').id )){}
+            if(isFileOfOthers()){}
             else if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id ))) || !AV.User.current) {
                 voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
                 voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
                 voxelPaintStorageManager.save();
             }
             else{
-                if(confirm('是否保存当前文件？')) {
-                    sidebarParams.save();
-                }
+                sidebarParams.save();
             }
         }
     }
 
     function onWindowReload(event) {
         reloadFlag = 1;
-        if( (AV.User.current() && box && box.get('user') && AV.User.current().id !== box.get('user').id )){}
+        if(isFileOfOthers()){}
         else if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
             voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, actionRecorder.changed);
             voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
@@ -4428,9 +4561,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             voxelPaintStorageManager.save();
         }
         else{
-            if(confirm('是否保存当前文件？')) {
-                sidebarParams.save();
-            }
+                if(confirm('是否保存当前文件？')) {
+                    sidebarParams.save();
+                }
         }
     }
 
@@ -5100,7 +5233,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     }
 
     function onOpenItClick() {
-
+        var oi = $('#openModal input[type=radio]:checked').val();
+        if(oi === '-1') { $('#openModal').modal('hide');bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
         document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
         if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
 
@@ -5111,7 +5245,6 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             }
         }
 
-        var oi = $('#openModal input[type=radio]:checked').val();
         if(oi) {
             var query = new AV.Query(Box);
             query.get( oi, {
@@ -5138,9 +5271,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         
     }
 
-    function onShareItClick() {
-        document.getElementById('openIt').removeEventListener('click', onShareItClick, false);
-        var oi = $('#openModal input[type=radio]:checked').val();
+    function onShareItClick() {        
+        var oi = $('#shareModal input[type=radio]:checked').val();
         if(oi) {
             var query = new AV.Query(Box);
             query.equalTo('objectId', oi);
@@ -5153,7 +5285,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                         currentBox.setACL(acl);
                         currentBox.set('shared', true);
                         currentBox.save().then(
-                            function(){},
+                            function(){                                
+                                bubble('分享成功，可通过显示的链接打开分享内容');
+                            },
                             function(){
                                 bubble('分享失败');
                             }
@@ -5166,9 +5300,82 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         }
     }
 
+    function onSetItPrivateClick() {        
+        var oi = $('#shareModal input[type=radio]:checked').val();
+        if(oi) {
+            var query = new AV.Query(Box);
+            query.equalTo('objectId', oi);
+            query.select('shared');
+            query.first().then(
+                function(currentBox) {
+                    if(currentBox.get('shared')){
+                        var acl = new AV.ACL(AV.User.current());
+                        currentBox.setACL(acl);
+                        currentBox.set('shared', false);
+                        currentBox.save().then(
+                            function(){                                
+                                bubble('取消分享成功');
+                            },
+                            function(){
+                                bubble('取消分享失败');
+                            }
+                        );
+                    }
+                }
+            );
+        }
+    }
+
+    function onDeleteItClick() {
+        var className ;
+        var radioGroupSubContainer = $('#openModal input[type=radio]:checked').parent().parent();
+        if(radioGroupSubContainer[0].id === 'myBox') {
+            className = 'Box';
+        }
+        else {
+            className = 'Keep';
+        }
+        var oi = $('#openModal input[type=radio]:checked').val();
+        if(oi && confirm('确定要删除吗？')) {
+            var deletingObject = AV.Object.createWithoutData(className, oi);
+            deletingObject.destroy().then(
+                function(currentObject) {
+                    bubble('已删除');
+                },
+                function(error) {
+                    bubble('删除失败');
+                }
+            );
+        }
+        $('#openModal').modal('hide');
+    }
+
+
+    function onInsertItClick() {
+        document.getElementById('openIt').removeEventListener('click', onIsertItClick, false);
+
+        var oi = $('#openModal input[type=radio]:checked').val();
+        if(oi === '-1') { $('#openModal').modal('hide');bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
+        if(oi) {
+            var query = new AV.Query(Box);
+            query.get( oi, {
+                success: function(currentBox) {
+                    insertBox = currentBox;
+                    bubble('按住ctrl键可插入多个，按shift切换插入方块的材质');
+                    
+                }
+            });
+        }
+        $('#openModal').modal('hide');
+        
+    }
+
+
     document.getElementById('login').addEventListener('click', onLoginClick, false);
     document.getElementById('signIn').addEventListener('click', onSignInClick, false);
 
+    document.getElementById('shareIt').addEventListener('click', onShareItClick, false);
+    document.getElementById('setItPrivate').addEventListener('click', onSetItPrivateClick, false);
 
     voxelPaintStorageManager.loadCamera(voxelPaintStorageManager.storageKeys.camera);
     voxelPaintStorageManager.loadSidebarSelectedButtons(voxelPaintStorageManager.storageKeys.sidebar);
@@ -5185,6 +5392,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#share').removeAttr('disabled');
             $('#delete').removeAttr('disabled');
             $('#insert').removeAttr('disabled');
+            $('#keep').removeAttr('disabled');
+            $('#currentFileState').show();
+            $('#currentFileName').show();
         }
         else{
             $('#loginOpener').show();
@@ -5196,12 +5406,15 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#share').attr('disabled', 'disabled');
             $('#delete').attr('disabled', 'disabled');
             $('#insert').attr('disabled', 'disabled');
+            $('#keep').attr('disabled', 'disabled');
+            $('#currentFileState').hide();
+            $('#currentFileName').hide();            
         }
     }
 
 
     function updateFileInfo() {
-        var filename = box.name || '未命名';
+        var filename = box.escape('name') || '未命名';
         var filestate = (actionRecorder.changed === '0' ? '未修改' : '已修改') + (box.id ? ' - 云端存储' : ' - 本地存储');
         $('#currentFileName').text('文件名：'+filename);    
         $('#currentFileState').text('文件状态：'+filestate);
@@ -5253,5 +5466,21 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             });
         }
     }, false);
+
+    //keyboard event toggles along with modal state changes
+    function onModalShow() {
+        document.removeEventListener( 'keydown', onDocumentKeyDown, false );
+        document.removeEventListener( 'keyup', onDocumentKeyUp, false );
+        base.controls.removeKeyEventListener();
+    }
+
+    function onModalHide() {
+        document.addEventListener( 'keydown', onDocumentKeyDown, false );
+        document.addEventListener( 'keyup', onDocumentKeyUp, false );
+        base.controls.addKeyEventListener();
+    }
+
+    $('.modal').on('hidden.bs.modal', onModalHide);
+    $('.modal').on('shown.bs.modal', onModalShow);
 
 })( window, document, Base, THREE, Detector);
