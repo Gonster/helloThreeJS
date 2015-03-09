@@ -1079,7 +1079,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                           + '  <label id="keepBoxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#'+modalId+' .modal-body #keepBoxDataLabel'+i).text(results[i].get('name')+ (results[i].get('box') ? '('+results[i].get('box').get('user').get('username')+'/'+results[i].get('box').get('username')+')' : ''));
+                        $('#'+modalId+' .modal-body #keepBoxDataLabel'+i).text(results[i].get('name')+ (results[i].get('box') ? '('+results[i].get('box').get('user').get('username')+'/'+results[i].get('box').get('name')+')' : ''));
                     }
                     if(results.length < 1) $('#openModal .modal-body #keepTitle').hide();
                     else $('#openModal .modal-body #keepTitle').show();
