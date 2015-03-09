@@ -4125,9 +4125,12 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt,'');
             voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName,''); 
             voxelPaintStorageManager.save();
-        
+            bubble('新建'); 
         },
         'open': function() {
+
+            document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onShareItClick, false);
 
             document.getElementById('openIt').addEventListener('click', onOpenItClick, false);
             var query = new AV.Query(Box);
@@ -4144,6 +4147,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#openModal .modal-body #keepTitle').text('我的收藏');
         },
         share: function() {
+            document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onShareItClick, false);
+
             document.getElementById('openIt').addEventListener('click', onShareItClick, false);
             var query = new AV.Query(Box);
             query.select('name');
@@ -4151,7 +4157,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             selectModalInit(query.find());
 
             $('#openModal .modal-body #boxTitle').text('我的文件');
-            $('#openModal .modal-body #keepTitle').html('分享链接：<input type="text" id="shareLink">');
+            $('#openModal .modal-body #keepTitle').html('<div>分享链接：</div><input type="text" id="shareLink">');
         }
     };
 
@@ -4167,7 +4173,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                           + '  <label id="boxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#openModal .modal-body .button-group #boxDataLabel'+i).text(results[i].get('name'));
+                        $('#openModal .modal-body #boxDataLabel'+i).text(results[i].get('name'));
                     }
                     $('#openModal').modal('show');
                 }
@@ -4183,7 +4189,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                           + '  <label id="boxDataLabel'+i+'"></label>'
                           + '</label>'
                         );
-                        $('#openModal .modal-body .button-group #boxDataLabel'+i).text(results[i].get('box').get('name'));
+                        $('#openModal .modal-body #boxDataLabel'+i).text(results[i].get('box').get('name'));
                     }
                     $('#openModal').modal('show');
                 }
@@ -4235,7 +4241,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             LIGHT_PARAMS[base.renderType].basePlaneTextureRepeat, 
             LIGHT_PARAMS[base.renderType].basePlaneTextureRepeat
         );
-        basePlaneMaterial = new THREE.MeshPhongMaterial( { ambient: 0xffffff, color: 0x33cc33, map: basePlaneTexture, bumpMap: basePlaneTexture, bumpScale: 3, specular: 0x335533, shininess: 15, emissive: 0xffffff} );        
+        basePlaneMaterial = new THREE.MeshPhongMaterial( { ambient: 0xffffff, color: 0xddcc33, map: basePlaneTexture, bumpMap: basePlaneTexture, bumpScale: 3, specular: 0x335533, shininess: 15, emissive: 0xffffff} );        
         // basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33} );        
         basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
         basePlaneMesh.receiveShadow = true;
