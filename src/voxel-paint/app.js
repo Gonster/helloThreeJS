@@ -348,11 +348,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                             retrievedBox.set('meshes', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.meshes));
                             retrievedBox.set('camera', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.camera));
 
-                            voxelPaintStorageManager.loadCamera(box.get('camera'), true);
-                            voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
-
                             voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name'));
                             actionRecorder.changed = voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.localChanges);
+
+                            voxelPaintStorageManager.loadCamera(box.get('camera'), true);
+                            voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
                         }
                         else{
                             box = retrievedBox;
