@@ -343,7 +343,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 query.equalTo('objectId', boxId)
                 query.first({
                     success: function(retrievedBox) {
-                        if(retrievedBox.updatedAt === updatedAt) {
+                        if(retrievedBox.updatedAt.toString() === updatedAt) {
                             box = retrievedBox;
                             retrievedBox.set('meshes', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.meshes));
                             retrievedBox.set('camera', voxelPaintStorageManager.load(VoxelPaintStorageManager.storageKeys.camera));
