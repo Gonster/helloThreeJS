@@ -1047,7 +1047,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     function selectModalInit(myPromise, keptPromise, modalIdO, bodyIdsO, isKeepIdUsed) {
             var modalId = modalIdO || 'openModal';
             var bodyIds = bodyIdsO || ['myBox', 'myKeep'];
-
+            
             if(myPromise) 
             myPromise.then(
                 function(results){
@@ -1061,6 +1061,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                         );
                         $('#'+modalId+' .modal-body #boxDataLabel'+i).text(results[i].get('name'));
                     }
+                    if(results.length < 1) $('#openModal .modal-body #boxTitle').hide();
+                    else $('#openModal .modal-body #boxTitle').show();
                 }
             );
            if(keptPromise)
@@ -1076,6 +1078,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                         );
                         $('#'+modalId+' .modal-body #boxDataLabel'+i).text(results[i].get('name')+'('+results[i].get('box').get('user').get('name')+'/'+results[i].get('box').get('name')+')');
                     }
+                    if(results.length < 1) $('#openModal .modal-body #keepTitle').hide();
+                    else $('#openModal .modal-body #keepTitle').show();
                 }
             );
 
@@ -2080,6 +2084,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
     function onDeleteItClick() {
         var className ;
+        var radioGroupSubContainer = $('#openModal input[type=radio]:checked').parent().parent();
         if(radioGroupSubContainer.id === 'myBox') {
             className = 'Box';
         }
