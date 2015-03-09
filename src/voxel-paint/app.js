@@ -1304,9 +1304,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 voxelPaintStorageManager.save();
             }
             else{
-                if(confirm('是否保存当前文件？')) {
-                    sidebarParams.save();
-                }
+                sidebarParams.save();
             }
         }
     }
@@ -1321,9 +1319,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             voxelPaintStorageManager.save();
         }
         else{
-            if(confirm('是否保存当前文件？')) {
-                sidebarParams.save();
-            }
+            sidebarParams.save();
         }
     }
 
@@ -1994,7 +1990,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
     function onOpenItClick() {
         var oi = $('#openModal input[type=radio]:checked').val();
-        if(oi === '-1') { bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
+        if(oi === '-1') { $('#openModal').modal('hide');bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
         document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
         if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
 
@@ -2115,7 +2111,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         document.getElementById('openIt').removeEventListener('click', onIsertItClick, false);
 
         var oi = $('#openModal input[type=radio]:checked').val();
-        if(oi === '-1') { bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
+        if(oi === '-1') { bubble($('#openModal').modal('hide');'收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
         if(oi) {
             var query = new AV.Query(Box);
             query.get( oi, {
