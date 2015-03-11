@@ -1556,7 +1556,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             }
             intersects = calculateIntersectResult(event);
             updateHelperCube(intersects);
-            if(pen.isInsertingFlag) updateInsertHelper(pen.insertMeshes, intersects);
+            if(pen.isInsertingFlag) pen.updateInsertHelper(pen.insertMeshes, intersects);
         }
         
     }
@@ -1585,7 +1585,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 drawVoxel(intersects, undefined, true, false, event.ctrlKey);
                 // if(sidebarParams['toolsType'] === 0) {
                     updateHelperCube(intersects);
-                    if(pen.isInsertingFlag) updateInsertHelper(pen.insertMeshes, intersects);
+                    if(pen.isInsertingFlag) pen.updateInsertHelper(pen.insertMeshes, intersects);
                 // }
                 break;
             case 1:
