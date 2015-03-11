@@ -648,6 +648,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         this.drawFlag = false;
         this.isInsertingFlag = false;
         this.insertMeshes = undefined;
+        this.insertMeshesBase = undefined;
+        this.insertMeshesNormal = new THREE.Vector3(0, 1, 0);
+        this.insertTimes = 0;
+        this.insertMaterialOverrideFlag = false;
     };
 
     function calculateIntersectResult(event) {
@@ -688,7 +692,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             }
         }
 
-        var baseMesh = insertMeshes[baseMeshIndex];
+        var baseMesh = this.insertMeshesBase = insertMeshes[baseMeshIndex];
         var baseOffset = baseMesh.position.clone().sub(basePosition);
 
         for(var i = 0, l = insertMeshes.length; i < l; i++) {
@@ -709,11 +713,52 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     }
 
     function addInsertHelperToScene(insertMeshes) {
-        adjustInsertMeshes(insertMeshes);
-        offsetInsertMeshesBasedOnHelperBox(insertMeshes);
+        this.adjustInsertMeshes(insertMeshes);
+        this.offsetInsertMeshesBasedOnHelperBox(insertMeshes);
         for(var i = 0, l = insertMeshes.length; i < l; i++) {
             base.scene.add(insertMeshes[i]);
         }
+    }
+
+    function updateInsertHelper(insertMeshes, intersects) {
+        if( !intersects ) return;
+        if( intersects.length < 1 ) return;
+        var intersect = intersects[0];
+
+        if(!insertMeshes || !intersect) return insertMeshes;
+        if(insertMeshes.length < 1) return insertMeshes;
+
+        var defaultNormal = new THREE.Vector3(0, 1, 0);
+        var intersectFaceNormal = intersect.face.normal.clone();
+        var quaternion = new THREE.Quaternion();
+        quaternion.setFromUnitVectors(this.insertMeshesNormal, intersectFaceNormal);
+        var baseOffset = helperCube.position.clone().sub(this.insertMeshesBase.position);
+        var rotationAnchor = helperCube.position.clone();
+        
+        for(var i = 0, l = insertMeshes.length; i < l; i++) {
+            insertMeshes[i].position.sub(baseOffset);
+            var rotateTarget = insertMeshes[i].position.clone().sub(rotationAnchor);
+            rotateTarget.applyQuaternion(quaternion);
+            insertMeshes[i].position.copy(rotationAnchor.add(rotateTarget));
+            insertMeshes[i].position.divideScalar( DEFAULT_BOX.width )
+            .floor()
+            .multiplyScalar( DEFAULT_BOX.width )
+            .addScalar( DEFAULT_BOX.width / 2.0 );
+        }
+        this.insertMeshesNormal = intersectFaceNormal;
+    }
+
+    function endInsert() {
+        for(var i = 0, l = this.insertMeshes.length; i < l; i++) {
+            base.scene.remove(this.insertMeshes[i]);
+        }
+        this.isInsertingFlag = false;
+        this.insertMeshes = undefined;
+        this.insertMeshesBase = undefined;
+        this.insertMeshesNormal = new THREE.Vector3(0, 1, 0);
+        this.insertTimes = 0;
+        this.insertMaterialOverrideFlag = false;
+        bubble('插入结束');
     }
 
     Pen.prototype = {
@@ -722,6 +767,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'updateHelperCube': updateHelperCube,
         'adjustInsertMeshes': adjustInsertMeshes,
         'offsetInsertMeshesBasedOnHelperBox': offsetInsertMeshesBasedOnHelperBox,
+        'addInsertHelperToScene': addInsertHelperToScene,
+        'updateInsertHelper': updateInsertHelper,
+        'endInsert': endInsert,
         'draw': function (geo, material, xyz, intersect, mesh, notVisibleInTheScene){
 
             var geoIndex,currentBoxGeometryParent,materialIndex,currentBoxMaterialParent;
@@ -769,7 +817,47 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             'draw': 'erase',
             'erase': 'draw'
         },
-        'insert': function (insertMeshes) {
+        'delete': function(deleteMeshesO) {
+            var deleteMeshes = deleteMeshesO || this.insertMeshes;
+            var deleted = [];
+            for(var i = 0, l = deleteMeshes.length; i < l; i++) {
+
+                for(var j = 0, dl = cubeMeshes.length; j < dl; j++) {
+                    var mesh = cubeMeshes[j].meshObject;
+                    if(deleteMeshes[i].position.equals(mesh.position)) {
+                        deleted.push(this.erase(mesh));
+                        break;
+                    }
+                }
+
+            }
+            return deleted;
+
+        },
+        'insert': function(insertMeshesO) {
+           
+           var insertMeshes = insertMeshesO || this.insertMeshes;
+           var inserted = [];
+           for(var i = 0, l = insertMeshes.length; i < l; i++) {
+                if(this.insertMaterialOverrideFlag) {
+                    var mesh = this.draw(currentBoxGeometryParentIndex, 
+                        currentBoxMaterialParentIndex, 
+                        [ insertMeshes[i].position.x, insertMeshes[i].position.y, insertMeshes[i].position.z ]
+                    );
+                    inserted.push(mesh);
+                }
+                else{
+                    var mesh = this.draw(
+                        insertMeshes[i].geometry, 
+                        insertMeshes[i].material, 
+                        [insertMeshes[i].position.x, insertMeshes[i].position.y, insertMeshes[i].position.z],
+                        undefined,
+                        insertMeshes[i]
+                    );
+                    inserted.push(mesh);
+                }
+           }
+           return inserted;
             
         }
     };
@@ -1203,7 +1291,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         directionalLight = new THREE.DirectionalLight( 0xeeeeee, LIGHT_PARAMS[base.renderType].directionalLightDensity );
         directionalLight.position.set( 0, 6000, 5000 );
         directionalLight.target.position.set( 0, 0, 0 );
-        directionalLight.castShadow = true;
+        // directionalLight.castShadow = true;
         directionalLight.shadowCameraNear = base.camera.near;
         directionalLight.shadowCameraFar = base.camera.far;
         directionalLight.shadowCameraFov = base.cam
@@ -1293,7 +1381,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
 
 
-    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving, isMouseMoving){
+    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving, isMouseMoving, ctrlKey){
         var intersects = intersectResult || calculateIntersectResult(event);
         if( intersects.length > 0 ){
             var intersect = intersects[0];
@@ -1309,25 +1397,58 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     }
                 }
             }
+
             //add a solid cube
             if(currentToolsType === 0){
-                if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
-                   
+                if(pen.isInsertingFlag){
+                    if(pen.insertTimes > 0 && !ctrlKey) {
+                            pen.endInsert();
+                            return;
+                    } 
+                    if(isMouseMoving) return;
+                    var deletedMeshes = pen.delete();
+                    actionRecorder.addAction('erase', deletedMeshes);
+                    var insertedMeshes = pen.insert();
+                    actionRecorder.addAction('draw', insertMeshes);
+                    pen.insertTimes++;
+                    if(!ctrlKey) {
+                        pen.endInsert();
+                    }
+                }
+                else{
+                    if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
+                       
                     var mesh = pen.draw(currentBoxGeometryParentIndex, currentBoxMaterialParentIndex, undefined, intersect);
                     if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('draw', mesh);
                     else actionRecorder.addAction('draw', mesh);      
                     //instant render   grant next draw right              
                     base.renderer.render( base.scene, base.camera );
-                return;
+                    return;
+                }
             }
 
             //remove cube
             if(currentToolsType === 1 && isEraseWhileMoving){
-                if( intersect.object !== basePlaneMesh ) {
-                    var mesh = pen.erase(intersect.object);
-                    if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('erase', mesh);
-                    else actionRecorder.addAction('erase', mesh);
-                    return;
+                if(pen.isInsertingFlag){
+                    if(pen.insertTimes > 0 && !ctrlKey) {
+                            pen.endInsert();
+                            return;
+                    } 
+                    if(isMouseMoving) return;
+                    var deletedMeshes = pen.delete();
+                    actionRecorder.addAction('erase', deletedMeshes);
+                    pen.insertTimes++;
+                    if(!ctrlKey) {
+                        pen.endInsert();
+                    }
+                }
+                else{
+                    if( intersect.object !== basePlaneMesh ) {
+                        var mesh = pen.erase(intersect.object);
+                        if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('erase', mesh);
+                        else actionRecorder.addAction('erase', mesh);
+                        return;
+                    }
                 }
             }
         }
@@ -1358,10 +1479,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             }
             else{
                 //give up in saving data to cloud
-                storageManager.save(storageManager.storageKeys.localChanges, actionRecorder.changed);
-                storageManager.save(storageManager.storageKeys.camera);
-                storageManager.save(storageManager.storageKeys.sidebar);
-                storageManager.save();
+                // storageManager.save(storageManager.storageKeys.localChanges, actionRecorder.changed);
+                // storageManager.save(storageManager.storageKeys.camera);
+                // storageManager.save(storageManager.storageKeys.sidebar);
+                // storageManager.save();
+                sidebarParams.save();
             }
         }
     }
@@ -1431,9 +1553,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             }
             else {
                 if(!helperCube.visible && auxToggle) helperCube.visible = true;
-                intersects = calculateIntersectResult(event);
-                updateHelperCube(intersects);
             }
+            intersects = calculateIntersectResult(event);
+            updateHelperCube(intersects);
+            if(pen.isInsertingFlag) updateInsertHelper(pen.insertMeshes, intersects);
         }
         
     }
@@ -1459,8 +1582,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 mouseState[0] = 1;
                 // onWindowResize();
                 var intersects = calculateIntersectResult(event);
-                drawVoxel(intersects, undefined, true, false);
-                if(sidebarParams['toolsType'] === 0) updateHelperCube(intersects);
+                drawVoxel(intersects, undefined, true, false, event.ctrlKey);
+                // if(sidebarParams['toolsType'] === 0) {
+                    updateHelperCube(intersects);
+                    if(pen.isInsertingFlag) updateInsertHelper(pen.insertMeshes, intersects);
+                // }
                 break;
             case 1:
                 mouseState[1] = 1;
@@ -1567,11 +1693,20 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         switch(event.keyCode){
             //shift
             case 16:
-                if(sidebarParams['toolsType'] === 0){
-                    document.getElementById('eraser').parentElement.click();
+                if(!pen.isInsertingFlag){
+                    if(sidebarParams['toolsType'] === 0){
+                        document.getElementById('eraser').parentElement.click();
+                        bubble('已切换至擦除');
+                    }
+                    else if(sidebarParams['toolsType'] === 1){
+                        document.getElementById('cube').parentElement.click();
+                        bubble('已切换至画笔');
+                    }
                 }
-                else if(sidebarParams['toolsType'] === 1){
-                    document.getElementById('cube').parentElement.click();
+                else{
+                    pen.insertMaterialOverrideFlag = !pen.insertMaterialOverrideFlag;
+                    if(pen.insertMaterialOverrideFlag) bubble('插入方块的材质将使用当前选择材质');
+                    else bubble('插入方块的材质将使用原文件中的材质');
                 }
                 break;
             //z
@@ -2186,7 +2321,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     pen.insertMeshes = storageManager.dataStringToMeshes(insertBox.get('meshes'));
                     addInsertHelperToScene(pen.insertMeshes);
 
-                    bubble('按住ctrl键可插入多个');
+                    bubble('按住ctrl键可插入多个，shift切换使用的材质');
                     
                 },
                 error: function() {
