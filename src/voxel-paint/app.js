@@ -189,7 +189,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'save': function(key, data) {
             if( ! window.localStorage ) return;
             var save = '';
-            if( ! data ){
+            if( data === undefined || data === null ){
                 switch(key){
                     default:
                     case this.storageKeys.meshes:
@@ -976,6 +976,18 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             auxToggle = ! auxToggle;
             if(auxToggle) bubble('辅助物体打开');
             else bubble('辅助物体关闭');
+        },
+        'toggleFPS': function(){            
+            if(base.stats.domElement.style.display == 'none') {
+                base.stats.domElement.style.display = 'block';
+                base.stats.begin();
+                bubble('FPS监测打开');
+            }
+            else {
+                base.stats.domElement.style.display = 'none';
+                base.stats.end();
+                bubble('FPS监测关闭');
+            }
         },
         'capture': function(){
             downloadCanvasImage( base.renderer.domElement, 'capture.png' );
@@ -1983,6 +1995,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                                         {
                                             'title': '阴影开关',
                                             'id': 'toggleShadow'
+                                        },
+                                        {
+                                            'title': 'FPS开关',
+                                            'id': 'toggleFPS'
                                         },
                                         {
                                             'title': '辅助物体开关',
