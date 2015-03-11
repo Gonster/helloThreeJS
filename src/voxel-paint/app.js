@@ -682,13 +682,22 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         if(insertMeshes.length < 1) return insertMeshes;
         var basePosition = new THREE.Vector3( DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0);
         var minLength = insertMeshes[0].position.length();
+        var minHeight =  insertMeshes[0].position.y;
         var baseMeshIndex = 0;
 
         for(var i = 1, l = insertMeshes.length; i < l; i++) {
-            var currentLength = insertMeshes[i].position.length();
-            if(currentLength < minLength) {
-                minLength = currentLength;
+            var currentHeight = insertMeshes[i].position.y;
+            if(currentHeight < minHeight) {
+                minHeight = currentHeight;
+                minLength = insertMeshes[i].position.length();
                 baseMeshIndex = i;
+            }
+            else if(currentHeight == minHeight){
+                var currentLength = insertMeshes[i].position.length();
+                if(currentLength < minLength) {
+                    minLength = currentLength;
+                    baseMeshIndex = i;
+                }
             }
         }
 
@@ -956,10 +965,17 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'toolsRadius': 0,
         'textures': 0,
         'texturesType': 0,
+        'toggleShadow': function() {
+            directionalLight.castShadow = !directionalLight.castShadow;
+            if(directionalLight.castShadow) bubble('阴影打开');
+            else bubbl('阴影关闭');
+        },
         'toggleAux': function(){
             (sidebarParams['toolsType'] === 1) || (helperCube.visible = ! helperCube.visible);
             // gridHelper.visible = ! gridHelper.visible;
             auxToggle = ! auxToggle;
+            if(auxToggle) bubble('辅助物体打开');
+            else bubbl('辅助物体关闭');
         },
         'capture': function(){
             downloadCanvasImage( base.renderer.domElement, 'capture.png' );
@@ -1304,7 +1320,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         directionalLight = new THREE.DirectionalLight( 0xeeeeee, LIGHT_PARAMS[base.renderType].directionalLightDensity );
         directionalLight.position.set( 0, 6000, 5000 );
         directionalLight.target.position.set( 0, 0, 0 );
-        // directionalLight.castShadow = true;
+        directionalLight.castShadow = true;
         directionalLight.shadowCameraNear = base.camera.near;
         directionalLight.shadowCameraFar = base.camera.far;
         directionalLight.shadowCameraFov = base.cam
@@ -1828,6 +1844,23 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                                             'id': 'eraser'
                                         }
                                     ]    
+                                },                                
+                                {
+                                    'UIType': 'buttonGroup',
+                                    'id': 'buttonGroup3',
+                                    'name': 'actions',
+                                    'buttonType': 'button',
+                                    'appendClass': 'btn-group-toolbtn',
+                                    'buttons':[
+                                        {
+                                            'title': '撤销',
+                                            'id': 'undo'
+                                        },
+                                        {
+                                            'title': '重做',
+                                            'id': 'redo'
+                                        }
+                                    ]    
                                 }
                                 // {
                                 //     'UIType': 'buttonGroup',
@@ -1932,47 +1965,34 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     'id': 'panel3',
                     'children':[
                         {
-                            'UIType': 'buttonGroup',
-                            'title': '',
-                            'id': 'buttonGroup3',
-                            'name': 'aux',
-                            'buttonType': 'button',
-                            'appendClass': 'btn-group-toolbtn',
-                            'buttons': [
-                                {
-                                    'title': '辅助物体开关',
-                                    'id': 'toggleAux'
-                                },
-                                {
-                                    'title': '截图',
-                                    'id': 'capture'
-                                },
-                                {
-                                    'title': '清空',
-                                    'id': 'clearAll'
-                                }
-                            ]
-                        },
-                        {
                             'UIType': 'Toolbar',
                             'id': 'toolbar1',
                             'children':[
                                 {
                                     'UIType': 'buttonGroup',
+                                    'title': '',
                                     'id': 'buttonGroup3',
-                                    'name': 'actions',
+                                    'name': 'aux',
                                     'buttonType': 'button',
                                     'appendClass': 'btn-group-toolbtn',
-                                    'buttons':[
+                                    'buttons': [
                                         {
-                                            'title': '撤销',
-                                            'id': 'undo'
+                                            'title': '阴影开关',
+                                            'id': 'toggleShadow'
                                         },
                                         {
-                                            'title': '重做',
-                                            'id': 'redo'
+                                            'title': '辅助物体开关',
+                                            'id': 'toggleAux'
+                                        },
+                                        {
+                                            'title': '截图',
+                                            'id': 'capture'
+                                        },
+                                        {
+                                            'title': '清空',
+                                            'id': 'clearAll'
                                         }
-                                    ]    
+                                    ]
                                 }
                             ]
                         }
@@ -2391,7 +2411,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
     function updateFileInfo() {
         var filename = box.escape('name') || '未命名';
-        var filestate = (actionRecorder.changed === '0' ? '未修改' : '已修改') + (box.id ? ' - 云端存储' : ' - 本地存储');
+        var filestate = (actionRecorder.changed === '0' ? '未修改' : '修改未保存') + (box.id ? ' - 云端存储' : ' - 本地存储');
         $('#currentFileName').text('文件名：'+filename);    
         $('#currentFileState').text('文件状态：'+filestate);
     }
