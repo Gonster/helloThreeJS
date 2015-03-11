@@ -736,7 +736,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         var rotationAnchor = helperCube.position.clone();
         
         for(var i = 0, l = insertMeshes.length; i < l; i++) {
-            insertMeshes[i].position.sub(baseOffset);
+            insertMeshes[i].position.add(baseOffset);
             var rotateTarget = insertMeshes[i].position.clone().sub(rotationAnchor);
             rotateTarget.applyQuaternion(quaternion);
             insertMeshes[i].position.copy(rotationAnchor.add(rotateTarget));
@@ -817,7 +817,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             'draw': 'erase',
             'erase': 'draw'
         },
-        'delete': function(deleteMeshesO) {
+        'deleteMesh': function(deleteMeshesO) {
             var deleteMeshes = deleteMeshesO || this.insertMeshes;
             var deleted = [];
             for(var i = 0, l = deleteMeshes.length; i < l; i++) {
