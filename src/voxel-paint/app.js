@@ -747,7 +747,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             insertMeshes[i].position.add(baseOffset);
             var rotateTarget = insertMeshes[i].position.clone().sub(rotationAnchor);
             rotateTarget.applyQuaternion(quaternion);
-            insertMeshes[i].position.copy(rotationAnchor.add(rotateTarget));
+            insertMeshes[i].position.copy(rotationAnchor.clone().add(rotateTarget));
             insertMeshes[i].position.divideScalar( DEFAULT_BOX.width )
             .floor()
             .multiplyScalar( DEFAULT_BOX.width )
@@ -968,14 +968,14 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'toggleShadow': function() {
             directionalLight.castShadow = !directionalLight.castShadow;
             if(directionalLight.castShadow) bubble('阴影打开');
-            else bubbl('阴影关闭');
+            else bubble('阴影关闭');
         },
         'toggleAux': function(){
             (sidebarParams['toolsType'] === 1) || (helperCube.visible = ! helperCube.visible);
             // gridHelper.visible = ! gridHelper.visible;
             auxToggle = ! auxToggle;
             if(auxToggle) bubble('辅助物体打开');
-            else bubbl('辅助物体关闭');
+            else bubble('辅助物体关闭');
         },
         'capture': function(){
             downloadCanvasImage( base.renderer.domElement, 'capture.png' );
@@ -1746,6 +1746,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             case 89:
                 if(event.ctrlKey) actionRecorder.redo();
                 break;
+            //ESC
+            case 27:
+                if(pen.isInsertingFlag) pen.endInsert();
+                break;
         }
     }
 
@@ -2354,7 +2358,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     pen.insertMeshes = storageManager.dataStringToMeshes(insertBox.get('meshes'));
                     pen.addInsertHelperToScene(pen.insertMeshes);
 
-                    bubble('按住ctrl键可插入多个，shift切换使用的材质');
+                    bubble('按住ctrl键可插入多个，shift切换使用的材质，ESC取消插入');
                     
                 },
                 error: function() {
