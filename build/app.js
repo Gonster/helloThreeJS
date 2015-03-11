@@ -2496,7 +2496,7 @@ THREE.OrbitControls = function ( object, domElement, settings ) {
 			panEnd.set( event.clientX, event.clientY );
 			panDelta.subVectors( panEnd, panStart );
 			
-			scope.panXZ( panDelta.x * scope.panSpeed, - panDelta.y * scope.panSpeed );
+			scope.pan( panDelta.x * scope.panSpeed, - panDelta.y * scope.panSpeed );
 
 			panStart.copy( panEnd );
 
@@ -2519,7 +2519,8 @@ THREE.OrbitControls = function ( object, domElement, settings ) {
 
 	function onMouseWheel( event ) {
 
-		if ( scope.enabled === false || scope.noZoom === true ) return;
+		// if ( scope.enabled === false || scope.noZoom === true ) return;
+		if ( scope.enabled === false || scope.noPan === true ) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -2538,12 +2539,13 @@ THREE.OrbitControls = function ( object, domElement, settings ) {
 
 		if ( delta > 0 ) {
 
-			scope.dollyOut();
+			// scope.dollyOut();
+			scope.panXZ( 0, delta * scope.panSpeed );
 
 		} else {
 
-			scope.dollyIn();
-
+			// scope.dollyIn();
+			scope.panXZ( 0, delta * scope.panSpeed );
 		}
 
 		scope.update();
@@ -2754,10 +2756,10 @@ THREE.OrbitControls = function ( object, domElement, settings ) {
 
 	this.removeKeyEventListener = function (){
 		window.removeEventListener( 'keydown', onKeyDown, false );
-	}
+	};
 	this.addKeyEventListener = function (){
 		window.addEventListener( 'keydown', onKeyDown, false );
-	}
+	};
 };
 
 THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
@@ -2924,7 +2926,7 @@ if ( typeof module === 'object' ) {
         'bubble': function(dom, text) {
             var theBubble = $('<div class="alert alert-info alert-vp fade"></div>').appendTo(dom);
             theBubble.text(text);
-            theBubble.finish().fadeTo(200, 1).delay(2500).fadeTo(100, 0, function(){
+            theBubble.finish().fadeTo(400, 1).delay(3000).fadeTo(200, 0, function(){
                 $(this).remove();
             });
         }
@@ -3404,12 +3406,12 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         }
     };
 
-    var VoxelPaintStorageManager = function(isLoadingBoxEnd){
+    var StorageManager = function(isLoadingBoxEnd){
         //loading animation flag   not end yet
         this.isLoadingBoxEnd = isLoadingBoxEnd;
     };
 
-    VoxelPaintStorageManager.prototype = {
+    StorageManager.prototype = {
         'LOAD_TYPE': {
             'async': 0,
             'sync': 1
@@ -3434,7 +3436,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     default:
                     case this.storageKeys.meshes:
                     case undefined:
-                        if( ! this.isLoadingBoxEnd && actionRecorder.currentActionIndex < 0) return;
+                        // if( ! this.isLoadingBoxEnd && actionRecorder.currentActionIndex < 0) return;
                         save += DEFAULT_BOX.width + ':';
                         for (var i = 0, l = cubeMeshes.length; i < l; i++) {
                             save += cubeMeshes[i].geo.id.replace('geo','') + ',';
@@ -3531,8 +3533,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 voxelAnimationManager.endFlag = true;
             }
         },
-        'loadMeshesTo': function loadMeshes(dataString, meshes) {
+        'dataStringToMeshes': function loadMeshes(dataString) {
             var loadDataArray = []; 
+            var meshes = [];
             var boxWidth = DEFAULT_BOX.width; 
             {
                 var load = dataString;
@@ -3585,52 +3588,52 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     success: function(retrievedBox) {
                         if(retrievedBox.updatedAt.toString() === updatedAt) {
                             box = retrievedBox;
-                            retrievedBox.set('meshes', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.meshes));
-                            retrievedBox.set('camera', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.camera));
+                            retrievedBox.set('meshes', storageManager.load(storageManager.storageKeys.meshes));
+                            retrievedBox.set('camera', storageManager.load(storageManager.storageKeys.camera));
 
-                            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name'));
-                            actionRecorder.changed = voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.localChanges);
+                            storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+                            actionRecorder.changed = storageManager.load(storageManager.storageKeys.localChanges);
 
-                            voxelPaintStorageManager.loadCamera(box.get('camera'), true);
-                            voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                            storageManager.loadCamera(box.get('camera'), true);
+                            storageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
                         }
                         else{
                             box = retrievedBox;
                             if(retrievedBox.get('user').id === AV.User.current().id) {
-                                var localChanges = actionRecorder.changed = voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.localChanges);
+                                var localChanges = actionRecorder.changed = storageManager.load(storageManager.storageKeys.localChanges);
                                 if(localChanges === '0' || (localChanges !== '0' && confirm('上次关闭前可能未完成保存，是否载入云端文件？若取消则将本地版本视为新文件'))) {
                                     var q = new AV.Query(Box);
                                     q.get(retrievedBox.id, {
                                         success: function(currentBox) {
                                             box = currentBox;
 
-                                            voxelPaintStorageManager.loadCamera(box.get('camera'), true);
-                                            voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                                            storageManager.loadCamera(box.get('camera'), true);
+                                            storageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
 
-                                            // voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, '0');
-                                            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name'));
-                                            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt, box.updatedAt);
-                                            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-                                            voxelPaintStorageManager.save();
+                                            // storageManager.save(storageManager.storageKeys.localChanges, '0');
+                                            storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+                                            storageManager.save(storageManager.storageKeys.updatedAt, box.updatedAt);
+                                            storageManager.save(storageManager.storageKeys.camera);
+                                            storageManager.save();
                                         },
                                         error: function(currentBox, error) {
-                                            retrievedBox.set('meshes', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.meshes));
-                                            retrievedBox.set('camera', voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.camera));
+                                            retrievedBox.set('meshes', storageManager.load(storageManager.storageKeys.meshes));
+                                            retrievedBox.set('camera', storageManager.load(storageManager.storageKeys.camera));
 
-                                            voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                                            storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
                                         }
                                     });
                                 }
                                 else{
 
                                     box = new Box();
-                                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');
-                                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt,'');
-                                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName,'');       
-                                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges,'1');                
+                                    storageManager.save(storageManager.storageKeys.boxId,'');
+                                    storageManager.save(storageManager.storageKeys.updatedAt,'');
+                                    storageManager.save(storageManager.storageKeys.boxName,'');       
+                                    storageManager.save(storageManager.storageKeys.localChanges,'1');                
                                     this.changed = 1;
 
-                                    voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                                    storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
 
                                     bubble('由于本地此文件与云端文件在同一文件的基础上做了不同的改动，将本地版本与云端此文件视为不同的文件');
 
@@ -3642,11 +3645,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                                     success: function(currentBox) {
                                         box = currentBox;
 
-                                        voxelPaintStorageManager.loadCamera(box.get('camera'), true);
-                                        voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                                        storageManager.loadCamera(box.get('camera'), true);
+                                        storageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
                                     },
                                     error: function(currentBox, error) {
-                                        voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                                        storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
                                     }
                                 });
                             }
@@ -3654,12 +3657,12 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     },
                     error: function(retrievedBox, error) {
                         bubble('载入失败，' + error.message);
-                        voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                        storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
                     }
                 });
             }
             else {
-                voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
             }
         },
         'loadShared': function loadShared(objectId, errorCallback) {
@@ -3668,8 +3671,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 success: function(currentBox) {
                     box = currentBox;
 
-                    voxelPaintStorageManager.loadCamera(box.get('camera'), true);
-                    voxelPaintStorageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                    storageManager.loadCamera(box.get('camera'), true);
+                    storageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
 
                     bubble('已载入分享文件');
                 },
@@ -3832,10 +3835,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             if(isFileOfOthers()) {
                 if(confirm('确定要修改吗？（将会作为新建的文件覆盖本地保存的数据）')){
                     box = new Box();
-                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId,'');
-                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt,'');
-                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName,'');       
-                    voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges,'1');     
+                    storageManager.save(storageManager.storageKeys.boxId,'');
+                    storageManager.save(storageManager.storageKeys.updatedAt,'');
+                    storageManager.save(storageManager.storageKeys.boxName,'');       
+                    storageManager.save(storageManager.storageKeys.localChanges,'1');     
                     bubble('已根据当前内容新建文件');
                 }
                 else{
@@ -3885,6 +3888,12 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
     var Pen = function(){        
         this.drawFlag = false;
+        this.isInsertingFlag = false;
+        this.insertMeshes = undefined;
+        this.insertMeshesBase = undefined;
+        this.insertMeshesNormal = new THREE.Vector3(0, 1, 0);
+        this.insertTimes = 0;
+        this.insertMaterialOverrideFlag = false;
     };
 
     function calculateIntersectResult(event) {
@@ -3910,10 +3919,107 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         }
     }
 
+    function adjustInsertMeshes(insertMeshes) {
+        if(!insertMeshes) return insertMeshes;
+        if(insertMeshes.length < 1) return insertMeshes;
+        var basePosition = new THREE.Vector3( DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0);
+        var minLength = insertMeshes[0].position.length();
+        var minHeight =  insertMeshes[0].position.y;
+        var baseMeshIndex = 0;
+
+        for(var i = 1, l = insertMeshes.length; i < l; i++) {
+            var currentHeight = insertMeshes[i].position.y;
+            if(currentHeight < minHeight) {
+                minHeight = currentHeight;
+                minLength = insertMeshes[i].position.length();
+                baseMeshIndex = i;
+            }
+            else if(currentHeight == minHeight){
+                var currentLength = insertMeshes[i].position.length();
+                if(currentLength < minLength) {
+                    minLength = currentLength;
+                    baseMeshIndex = i;
+                }
+            }
+        }
+
+        var baseMesh = this.insertMeshesBase = insertMeshes[baseMeshIndex];
+        var baseOffset = baseMesh.position.clone().sub(basePosition);
+
+        for(var i = 0, l = insertMeshes.length; i < l; i++) {
+            insertMeshes[i].position.sub(baseOffset);
+        }
+        return insertMeshes;
+    }
+
+    function offsetInsertMeshesBasedOnHelperBox(insertMeshes) {
+        if(!insertMeshes) return insertMeshes;
+        if(insertMeshes.length < 1) return insertMeshes;
+        var basePosition = new THREE.Vector3( DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0);
+        var baseOffset = helperCube.position.clone().sub(basePosition);
+
+        for(var i = 0, l = insertMeshes.length; i < l; i++) {
+            insertMeshes[i].position.sub(baseOffset);
+        }
+    }
+
+    function addInsertHelperToScene(insertMeshes) {
+        this.adjustInsertMeshes(insertMeshes);
+        this.offsetInsertMeshesBasedOnHelperBox(insertMeshes);
+        for(var i = 0, l = insertMeshes.length; i < l; i++) {
+            base.scene.add(insertMeshes[i]);
+        }
+    }
+
+    function updateInsertHelper(insertMeshes, intersects) {
+        if( !intersects ) return;
+        if( intersects.length < 1 ) return;
+        var intersect = intersects[0];
+
+        if(!insertMeshes || !intersect) return insertMeshes;
+        if(insertMeshes.length < 1) return insertMeshes;
+
+        var intersectFaceNormal = intersect.face.normal.clone();
+        var quaternion = new THREE.Quaternion();
+        quaternion.setFromUnitVectors(this.insertMeshesNormal, intersectFaceNormal);
+        var baseOffset = helperCube.position.clone().sub(this.insertMeshesBase.position);
+        var rotationAnchor = helperCube.position.clone();
+        
+        for(var i = 0, l = insertMeshes.length; i < l; i++) {
+            insertMeshes[i].position.add(baseOffset);
+            var rotateTarget = insertMeshes[i].position.clone().sub(rotationAnchor);
+            rotateTarget.applyQuaternion(quaternion);
+            insertMeshes[i].position.copy(rotationAnchor.clone().add(rotateTarget));
+            insertMeshes[i].position.divideScalar( DEFAULT_BOX.width )
+            .floor()
+            .multiplyScalar( DEFAULT_BOX.width )
+            .addScalar( DEFAULT_BOX.width / 2.0 );
+        }
+        this.insertMeshesNormal = intersectFaceNormal;
+    }
+
+    function endInsert() {
+        for(var i = 0, l = this.insertMeshes.length; i < l; i++) {
+            base.scene.remove(this.insertMeshes[i]);
+        }
+        this.isInsertingFlag = false;
+        this.insertMeshes = undefined;
+        this.insertMeshesBase = undefined;
+        this.insertMeshesNormal = new THREE.Vector3(0, 1, 0);
+        this.insertTimes = 0;
+        this.insertMaterialOverrideFlag = false;
+        bubble('插入结束');
+    }
+
     Pen.prototype = {
         'calculateIntersectResult': calculateIntersectResult,
         'setMeshPositionToFitTheGrid': setMeshPositionToFitTheGrid,
         'updateHelperCube': updateHelperCube,
+        'adjustInsertMeshes': adjustInsertMeshes,
+        'offsetInsertMeshesBasedOnHelperBox': offsetInsertMeshesBasedOnHelperBox,
+        'addInsertHelperToScene': addInsertHelperToScene,
+        'updateInsertHelper': updateInsertHelper,
+        'endInsert': endInsert,
         'draw': function (geo, material, xyz, intersect, mesh, notVisibleInTheScene){
 
             var geoIndex,currentBoxGeometryParent,materialIndex,currentBoxMaterialParent;
@@ -3960,6 +4066,63 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'reverseOperationMap': {
             'draw': 'erase',
             'erase': 'draw'
+        },
+        'deleteMesh': function(deleteMeshesO) {
+            var deleteMeshes = deleteMeshesO || this.insertMeshes;
+            var deleted = [];
+            for(var i = 0, l = deleteMeshes.length; i < l; i++) {
+
+                for(var j = 0, dl = cubeMeshes.length; j < dl; j++) {
+                    var mesh = cubeMeshes[j].meshObject;
+                    if(deleteMeshes[i].position.equals(mesh.position)) {
+                        deleted.push(this.erase(mesh));
+                        break;
+                    }
+                }
+
+            }
+            return deleted;
+
+        },
+        'insert': function(insertMeshesO) {
+           
+           var insertMeshes = insertMeshesO || this.insertMeshes;
+           var inserted = [];
+           for(var i = 0, l = insertMeshes.length; i < l; i++) {
+                if(this.insertMaterialOverrideFlag) {
+                    var mesh = this.draw(currentBoxGeometryParentIndex, 
+                        currentBoxMaterialParentIndex, 
+                        [ insertMeshes[i].position.x, insertMeshes[i].position.y, insertMeshes[i].position.z ]
+                    );
+                    inserted.push(mesh);
+                }
+                else{
+                    var geo = 0;
+                    for(var j = 0, lg = geometries.length; j < lg; j++) {
+                        if(geometries[j].data === insertMeshes[i].geometry) {
+                            geo = j;
+                            break;
+                        }
+                    }
+                    var mat = 0;
+                    for(var k = 0, lm = materials.length; k < lm; k++) {
+                        if(materials[k].data === insertMeshes[i].material) {
+                            mat = k;
+                            break;
+                        }
+                    }
+                    var mesh = this.draw(
+                        geo, 
+                        mat, 
+                        [insertMeshes[i].position.x, insertMeshes[i].position.y, insertMeshes[i].position.z],
+                        undefined,
+                        insertMeshes[i].clone()
+                    );
+                    inserted.push(mesh);
+                }
+           }
+           return inserted;
+            
         }
     };
 
@@ -4003,7 +4166,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
     var autoSaveInterval = 120*1000;
     var autoSaveIntervalHandler;
-    var defaultLoadType = VoxelPaintStorageManager.prototype.LOAD_TYPE.async;
+    var defaultLoadType = StorageManager.prototype.LOAD_TYPE.async;
     var defaultTexturesButtonWidth = 50;
 
     var defaultMaterial = new THREE.MeshLambertMaterial( { color: 0x090909 } );
@@ -4044,10 +4207,17 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'toolsRadius': 0,
         'textures': 0,
         'texturesType': 0,
+        'toggleShadow': function() {
+            directionalLight.castShadow = !directionalLight.castShadow;
+            if(directionalLight.castShadow) bubble('阴影打开');
+            else bubble('阴影关闭');
+        },
         'toggleAux': function(){
             (sidebarParams['toolsType'] === 1) || (helperCube.visible = ! helperCube.visible);
             // gridHelper.visible = ! gridHelper.visible;
             auxToggle = ! auxToggle;
+            if(auxToggle) bubble('辅助物体打开');
+            else bubble('辅助物体关闭');
         },
         'capture': function(){
             downloadCanvasImage( base.renderer.domElement, 'capture.png' );
@@ -4117,7 +4287,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     box.set('camera', cameraSave || '0,0,0;1000,500,1000');
                     box.set('meshes', meshSave || '');
                     if(!box.id){
-                        var name =  prompt('请输入文件名', box.get('name') || voxelPaintStorageManager.load(voxelPaintStorageManager.storageKeys.boxName) || '未命名');
+                        var name =  prompt('请输入文件名', box.get('name') || storageManager.load(storageManager.storageKeys.boxName) || '未命名');
                         box.set('name', name || '未命名');
                         box.set('user', AV.User.current());
                         box.setACL(new AV.ACL(AV.User.current()));
@@ -4125,31 +4295,31 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     box.save({
                         success: function(box) {
                             bubble('已保存至云端');
-                            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt, box.updatedAt);
-                            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId, box.id);
-                            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name'));
+                            storageManager.save(storageManager.storageKeys.updatedAt, box.updatedAt);
+                            storageManager.save(storageManager.storageKeys.boxId, box.id);
+                            storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
                         },
                         error: function(box, error) {
                             bubble('云端保存失败，将会保存在本地' + error.message);
-                            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name'));
+                            storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
 
                             actionRecorder.changed = '1';
 
-                            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, '1');
+                            storageManager.save(storageManager.storageKeys.localChanges, '1');
                         }
                     });
                 }
                 actionRecorder.changed = '0';
 
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, '0');
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-                voxelPaintStorageManager.save();
+                storageManager.save(storageManager.storageKeys.localChanges, '0');
+                storageManager.save(storageManager.storageKeys.camera);
+                storageManager.save(storageManager.storageKeys.sidebar);
+                storageManager.save();
             }
             else{
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-                voxelPaintStorageManager.save();
+                storageManager.save(storageManager.storageKeys.camera);
+                storageManager.save(storageManager.storageKeys.sidebar);
+                storageManager.save();
                 var info = '已保存在本地';
                 if(!loginAlertFlag){
                     info += '，登录后可向云端保存多个文件';
@@ -4173,12 +4343,12 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             actionRecorder = new ActionRecorder();
             actionRecorder.updateDom();
             box = new Box();
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, '0');
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt,'');
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName,''); 
-            voxelPaintStorageManager.save();
+            storageManager.save(storageManager.storageKeys.localChanges, '0');
+            storageManager.save(storageManager.storageKeys.camera);
+            storageManager.save(storageManager.storageKeys.sidebar);
+            storageManager.save(storageManager.storageKeys.updatedAt,'');
+            storageManager.save(storageManager.storageKeys.boxName,''); 
+            storageManager.save();
             bubble('新建'); 
         },
         'open': function() {
@@ -4351,7 +4521,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     var fog;
 
     var voxelAnimationManager = new VoxelAnimationManager();
-    var voxelPaintStorageManager = new VoxelPaintStorageManager(false);
+    var storageManager = new StorageManager(false);
     var actionRecorder =new ActionRecorder();
     var pen = new Pen();
 
@@ -4482,7 +4652,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
 
 
-    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving, isMouseMoving){
+    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving, isMouseMoving, ctrlKey){
         var intersects = intersectResult || calculateIntersectResult(event);
         if( intersects.length > 0 ){
             var intersect = intersects[0];
@@ -4498,25 +4668,58 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     }
                 }
             }
+
             //add a solid cube
             if(currentToolsType === 0){
-                if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
-                   
+                if(pen.isInsertingFlag){
+                    if(pen.insertTimes > 0 && !ctrlKey) {
+                            pen.endInsert();
+                            return;
+                    } 
+                    if(isMouseMoving) return;
+                    var deletedMeshes = pen.deleteMesh();
+                    actionRecorder.addAction('erase', deletedMeshes);
+                    var insertedMeshes = pen.insert();
+                    actionRecorder.addAction('draw', insertedMeshes);
+                    pen.insertTimes++;
+                    if(!ctrlKey) {
+                        pen.endInsert();
+                    }
+                }
+                else{
+                    if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
+                       
                     var mesh = pen.draw(currentBoxGeometryParentIndex, currentBoxMaterialParentIndex, undefined, intersect);
                     if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('draw', mesh);
                     else actionRecorder.addAction('draw', mesh);      
                     //instant render   grant next draw right              
                     base.renderer.render( base.scene, base.camera );
-                return;
+                    return;
+                }
             }
 
             //remove cube
             if(currentToolsType === 1 && isEraseWhileMoving){
-                if( intersect.object !== basePlaneMesh ) {
-                    var mesh = pen.erase(intersect.object);
-                    if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('erase', mesh);
-                    else actionRecorder.addAction('erase', mesh);
-                    return;
+                if(pen.isInsertingFlag){
+                    if(pen.insertTimes > 0 && !ctrlKey) {
+                            pen.endInsert();
+                            return;
+                    } 
+                    if(isMouseMoving) return;
+                    var deletedMeshes = pen.deleteMesh();
+                    actionRecorder.addAction('erase', deletedMeshes);
+                    pen.insertTimes++;
+                    if(!ctrlKey) {
+                        pen.endInsert();
+                    }
+                }
+                else{
+                    if( intersect.object !== basePlaneMesh ) {
+                        var mesh = pen.erase(intersect.object);
+                        if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('erase', mesh);
+                        else actionRecorder.addAction('erase', mesh);
+                        return;
+                    }
                 }
             }
         }
@@ -4525,14 +4728,14 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     function autoSave(){
       if(isFileOfOthers()){}
       else {
-          voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, actionRecorder.changed);
-          voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-          voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-          voxelPaintStorageManager.save();
+          storageManager.save(storageManager.storageKeys.localChanges, actionRecorder.changed);
+          storageManager.save(storageManager.storageKeys.camera);
+          storageManager.save(storageManager.storageKeys.sidebar);
+          storageManager.save();
 
-          // voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name') || '');
-          // voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId, box.id || '');
-          // voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt, box.updatedAt || '');
+          // storageManager.save(storageManager.storageKeys.boxName, box.get('name') || '');
+          // storageManager.save(storageManager.storageKeys.boxId, box.id || '');
+          // storageManager.save(storageManager.storageKeys.updatedAt, box.updatedAt || '');
       }
     }
 
@@ -4541,12 +4744,17 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         if(reloadFlag === 0){            
             if(isFileOfOthers()){}
             else if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id ))) || !AV.User.current) {
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-                voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-                voxelPaintStorageManager.save();
+                storageManager.save(storageManager.storageKeys.camera);
+                storageManager.save(storageManager.storageKeys.sidebar);
+                storageManager.save();
             }
             else{
-                sidebarParams.save();
+                //give up in saving data to cloud
+                storageManager.save(storageManager.storageKeys.localChanges, actionRecorder.changed);
+                storageManager.save(storageManager.storageKeys.camera);
+                storageManager.save(storageManager.storageKeys.sidebar);
+                storageManager.save();
+                // sidebarParams.save();
             }
         }
     }
@@ -4555,14 +4763,19 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         reloadFlag = 1;
         if(isFileOfOthers()){}
         else if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, actionRecorder.changed);
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-            voxelPaintStorageManager.save();
+            storageManager.save(storageManager.storageKeys.camera);
+            storageManager.save(storageManager.storageKeys.sidebar);
+            storageManager.save();
         }
         else{
                 if(confirm('是否保存当前文件？')) {
                     sidebarParams.save();
+                }
+                else{
+                    storageManager.save(storageManager.storageKeys.localChanges, actionRecorder.changed);
+                    storageManager.save(storageManager.storageKeys.camera);
+                    storageManager.save(storageManager.storageKeys.sidebar);
+                    storageManager.save();
                 }
         }
     }
@@ -4611,9 +4824,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             }
             else {
                 if(!helperCube.visible && auxToggle) helperCube.visible = true;
-                intersects = calculateIntersectResult(event);
-                updateHelperCube(intersects);
             }
+            intersects = calculateIntersectResult(event);
+            updateHelperCube(intersects);
+            if(pen.isInsertingFlag) pen.updateInsertHelper(pen.insertMeshes, intersects);
         }
         
     }
@@ -4639,8 +4853,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 mouseState[0] = 1;
                 // onWindowResize();
                 var intersects = calculateIntersectResult(event);
-                drawVoxel(intersects, undefined, true, false);
-                if(sidebarParams['toolsType'] === 0) updateHelperCube(intersects);
+                drawVoxel(intersects, undefined, true, false, event.ctrlKey);
+                // if(sidebarParams['toolsType'] === 0) {
+                    updateHelperCube(intersects);
+                    if(pen.isInsertingFlag) pen.updateInsertHelper(pen.insertMeshes, intersects);
+                // }
                 break;
             case 1:
                 mouseState[1] = 1;
@@ -4747,11 +4964,20 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         switch(event.keyCode){
             //shift
             case 16:
-                if(sidebarParams['toolsType'] === 0){
-                    document.getElementById('eraser').parentElement.click();
+                if(!pen.isInsertingFlag){
+                    if(sidebarParams['toolsType'] === 0){
+                        document.getElementById('eraser').parentElement.click();
+                        bubble('已切换至擦除');
+                    }
+                    else if(sidebarParams['toolsType'] === 1){
+                        document.getElementById('cube').parentElement.click();
+                        bubble('已切换至画笔');
+                    }
                 }
-                else if(sidebarParams['toolsType'] === 1){
-                    document.getElementById('cube').parentElement.click();
+                else{
+                    pen.insertMaterialOverrideFlag = !pen.insertMaterialOverrideFlag;
+                    if(pen.insertMaterialOverrideFlag) bubble('插入方块的材质将使用当前选择材质');
+                    else bubble('插入方块的材质将使用原文件中的材质');
                 }
                 break;
             //z
@@ -4761,6 +4987,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             //y
             case 89:
                 if(event.ctrlKey) actionRecorder.redo();
+                break;
+            //ESC
+            case 27:
+                if(pen.isInsertingFlag) pen.endInsert();
                 break;
         }
     }
@@ -4858,6 +5088,23 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                                         {
                                             'title': '擦除',
                                             'id': 'eraser'
+                                        }
+                                    ]    
+                                },                                
+                                {
+                                    'UIType': 'buttonGroup',
+                                    'id': 'buttonGroup3',
+                                    'name': 'actions',
+                                    'buttonType': 'button',
+                                    'appendClass': 'btn-group-toolbtn',
+                                    'buttons':[
+                                        {
+                                            'title': '撤销',
+                                            'id': 'undo'
+                                        },
+                                        {
+                                            'title': '重做',
+                                            'id': 'redo'
                                         }
                                     ]    
                                 }
@@ -4964,47 +5211,34 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     'id': 'panel3',
                     'children':[
                         {
-                            'UIType': 'buttonGroup',
-                            'title': '',
-                            'id': 'buttonGroup3',
-                            'name': 'aux',
-                            'buttonType': 'button',
-                            'appendClass': 'btn-group-toolbtn',
-                            'buttons': [
-                                {
-                                    'title': '辅助物体开关',
-                                    'id': 'toggleAux'
-                                },
-                                {
-                                    'title': '截图',
-                                    'id': 'capture'
-                                },
-                                {
-                                    'title': '清空',
-                                    'id': 'clearAll'
-                                }
-                            ]
-                        },
-                        {
                             'UIType': 'Toolbar',
                             'id': 'toolbar1',
                             'children':[
                                 {
                                     'UIType': 'buttonGroup',
+                                    'title': '',
                                     'id': 'buttonGroup3',
-                                    'name': 'actions',
+                                    'name': 'aux',
                                     'buttonType': 'button',
                                     'appendClass': 'btn-group-toolbtn',
-                                    'buttons':[
+                                    'buttons': [
                                         {
-                                            'title': '撤销',
-                                            'id': 'undo'
+                                            'title': '阴影开关',
+                                            'id': 'toggleShadow'
                                         },
                                         {
-                                            'title': '重做',
-                                            'id': 'redo'
+                                            'title': '辅助物体开关',
+                                            'id': 'toggleAux'
+                                        },
+                                        {
+                                            'title': '截图',
+                                            'id': 'capture'
+                                        },
+                                        {
+                                            'title': '清空',
+                                            'id': 'clearAll'
                                         }
-                                    ]    
+                                    ]
                                 }
                             ]
                         }
@@ -5167,6 +5401,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         }).addEventListener('click', onSidebarBtnClick, false);
     }
 
+    //file command callbacks
      function onLoginClick() {
         var username = $('#loginUsername').val();
         var password = $('#loginPassword').val();
@@ -5185,7 +5420,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 bubble('你好' + AV.User.current().escape('username'));
                 $('#loginUsername').val('');
                 $('#loginPassword').val('');
-                voxelPaintStorageManager.loadRemote();
+                storageManager.loadRemote();
             },
             error: function(user, error) {
                 $('#loginError').html(error.message);
@@ -5222,7 +5457,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 $('#signInEmail').val('');
                 $('#signInUsername').val('');
                 $('#signInPassword').val('');
-                voxelPaintStorageManager.loadRemote();
+                storageManager.loadRemote();
             },
             error: function(user, error) {
                 $('#signInError').html(error.message);
@@ -5253,16 +5488,16 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     actionRecorder = new ActionRecorder();
                     actionRecorder.updateDom();
                     box = currentBox;
-                    voxelPaintStorageManager.loadCamera(currentBox.get('camera'), true);
-                    voxelPaintStorageManager.loadMeshes(currentBox.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                    storageManager.loadCamera(currentBox.get('camera'), true);
+                    storageManager.loadMeshes(currentBox.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
                     if(currentBox.get('user').id === AV.User.current().id) {
-                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.localChanges, '0');
-                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxName, box.get('name'));
-                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.boxId, box.id);
-                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.updatedAt, box.updatedAt);
-                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-                        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-                        voxelPaintStorageManager.save();
+                        storageManager.save(storageManager.storageKeys.localChanges, '0');
+                        storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+                        storageManager.save(storageManager.storageKeys.boxId, box.id);
+                        storageManager.save(storageManager.storageKeys.updatedAt, box.updatedAt);
+                        storageManager.save(storageManager.storageKeys.camera);
+                        storageManager.save(storageManager.storageKeys.sidebar);
+                        storageManager.save();
                     }
                 }
             });
@@ -5352,7 +5587,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
 
     function onInsertItClick() {
-        document.getElementById('openIt').removeEventListener('click', onIsertItClick, false);
+        document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
 
         var oi = $('#openModal input[type=radio]:checked').val();
         if(oi === '-1') { $('#openModal').modal('hide');bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
@@ -5361,8 +5596,15 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             query.get( oi, {
                 success: function(currentBox) {
                     insertBox = currentBox;
-                    bubble('按住ctrl键可插入多个，按shift切换插入方块的材质');
+                    pen.isInsertingFlag = true;
+                    pen.insertMeshes = storageManager.dataStringToMeshes(insertBox.get('meshes'));
+                    pen.addInsertHelperToScene(pen.insertMeshes);
+
+                    bubble('按住ctrl键可插入多个，shift切换使用的材质，ESC取消插入');
                     
+                },
+                error: function() {
+                    bubble('载入失败，无法插入');
                 }
             });
         }
@@ -5377,8 +5619,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     document.getElementById('shareIt').addEventListener('click', onShareItClick, false);
     document.getElementById('setItPrivate').addEventListener('click', onSetItPrivateClick, false);
 
-    voxelPaintStorageManager.loadCamera(voxelPaintStorageManager.storageKeys.camera);
-    voxelPaintStorageManager.loadSidebarSelectedButtons(voxelPaintStorageManager.storageKeys.sidebar);
+    storageManager.loadCamera(storageManager.storageKeys.camera);
+    storageManager.loadSidebarSelectedButtons(storageManager.storageKeys.sidebar);
 
     function loginTrigger(flag){
         if(flag) {            
@@ -5415,7 +5657,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
     function updateFileInfo() {
         var filename = box.escape('name') || '未命名';
-        var filestate = (actionRecorder.changed === '0' ? '未修改' : '已修改') + (box.id ? ' - 云端存储' : ' - 本地存储');
+        var filestate = (actionRecorder.changed === '0' ? '未修改' : '修改未保存') + (box.id ? ' - 云端存储' : ' - 本地存储');
         $('#currentFileName').text('文件名：'+filename);    
         $('#currentFileState').text('文件状态：'+filestate);
     }
@@ -5432,13 +5674,13 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         var shareHash = window.location.hash;
         if(shareHash) {
             shareHash = shareHash.substring(1);
-            voxelPaintStorageManager.loadShared(shareHash, function() {                
+            storageManager.loadShared(shareHash, function() {                
                 bubble('载入分享文件失败');
-                voxelPaintStorageManager.loadRemote();
+                storageManager.loadRemote();
             });
         }
         else{
-            voxelPaintStorageManager.loadRemote();
+            storageManager.loadRemote();
         }
     } 
     else {
@@ -5447,13 +5689,13 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         var shareHash = window.location.hash;
         if(shareHash) {
             shareHash = shareHash.substring(1);
-            voxelPaintStorageManager.loadShared(shareHash, function() {
+            storageManager.loadShared(shareHash, function() {
                 bubble('载入分享文件失败');
-                voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
             });
         }
         else{
-            voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+            storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
         }
     }
     
@@ -5461,7 +5703,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         var shareHash = window.location.hash;
         if(shareHash) {
             shareHash = shareHash.substring(1);
-            voxelPaintStorageManager.loadShared(shareHash, function(){
+            storageManager.loadShared(shareHash, function(){
                 bubble('载入分享文件失败');
             });
         }
