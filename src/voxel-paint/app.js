@@ -728,7 +728,6 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         if(!insertMeshes || !intersect) return insertMeshes;
         if(insertMeshes.length < 1) return insertMeshes;
 
-        var defaultNormal = new THREE.Vector3(0, 1, 0);
         var intersectFaceNormal = intersect.face.normal.clone();
         var quaternion = new THREE.Quaternion();
         quaternion.setFromUnitVectors(this.insertMeshesNormal, intersectFaceNormal);
@@ -852,7 +851,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                         insertMeshes[i].material, 
                         [insertMeshes[i].position.x, insertMeshes[i].position.y, insertMeshes[i].position.z],
                         undefined,
-                        insertMeshes[i]
+                        insertMeshes[i].clone()
                     );
                     inserted.push(mesh);
                 }
