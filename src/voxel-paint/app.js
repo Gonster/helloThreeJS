@@ -1479,11 +1479,11 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             }
             else{
                 //give up in saving data to cloud
-                // storageManager.save(storageManager.storageKeys.localChanges, actionRecorder.changed);
-                // storageManager.save(storageManager.storageKeys.camera);
-                // storageManager.save(storageManager.storageKeys.sidebar);
-                // storageManager.save();
-                sidebarParams.save();
+                storageManager.save(storageManager.storageKeys.localChanges, actionRecorder.changed);
+                storageManager.save(storageManager.storageKeys.camera);
+                storageManager.save(storageManager.storageKeys.sidebar);
+                storageManager.save();
+                // sidebarParams.save();
             }
         }
     }
@@ -2308,7 +2308,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
 
 
     function onInsertItClick() {
-        document.getElementById('openIt').removeEventListener('click', onIsertItClick, false);
+        document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
 
         var oi = $('#openModal input[type=radio]:checked').val();
         if(oi === '-1') { $('#openModal').modal('hide');bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
