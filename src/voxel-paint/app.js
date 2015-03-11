@@ -847,8 +847,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 }
                 else{
                     var mesh = this.draw(
-                        insertMeshes[i].geometry, 
-                        insertMeshes[i].material, 
+                        geometries.indexOf(insertMeshes[i].geometry), 
+                        materials.indexOf(insertMeshes[i].material), 
                         [insertMeshes[i].position.x, insertMeshes[i].position.y, insertMeshes[i].position.z],
                         undefined,
                         insertMeshes[i].clone()
