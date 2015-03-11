@@ -194,7 +194,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     default:
                     case this.storageKeys.meshes:
                     case undefined:
-                        if( ! this.isLoadingBoxEnd && actionRecorder.currentActionIndex < 0) return;
+                        // if( ! this.isLoadingBoxEnd && actionRecorder.currentActionIndex < 0) return;
                         save += DEFAULT_BOX.width + ':';
                         for (var i = 0, l = cubeMeshes.length; i < l; i++) {
                             save += cubeMeshes[i].geo.id.replace('geo','') + ',';
@@ -1406,10 +1406,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                             return;
                     } 
                     if(isMouseMoving) return;
-                    var deletedMeshes = pen.delete();
+                    var deletedMeshes = pen.deleteMesh();
                     actionRecorder.addAction('erase', deletedMeshes);
                     var insertedMeshes = pen.insert();
-                    actionRecorder.addAction('draw', insertMeshes);
+                    actionRecorder.addAction('draw', insertedMeshes);
                     pen.insertTimes++;
                     if(!ctrlKey) {
                         pen.endInsert();
@@ -1435,7 +1435,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                             return;
                     } 
                     if(isMouseMoving) return;
-                    var deletedMeshes = pen.delete();
+                    var deletedMeshes = pen.deleteMesh();
                     actionRecorder.addAction('erase', deletedMeshes);
                     pen.insertTimes++;
                     if(!ctrlKey) {
