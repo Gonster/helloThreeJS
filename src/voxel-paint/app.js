@@ -846,9 +846,23 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     inserted.push(mesh);
                 }
                 else{
+                    var geo = 0;
+                    for(var j = 0, lg = geometries.length; j < lg; j++) {
+                        if(geometries[j].data === insertMeshes[i].geometry) {
+                            geo = j;
+                            break;
+                        }
+                    }
+                    var mat = 0;
+                    for(var k = 0, lm = materials.length; k < lm; k++) {
+                        if(materials[k].data === insertMeshes[i].material) {
+                            mat = k;
+                            break;
+                        }
+                    }
                     var mesh = this.draw(
-                        geometries.indexOf(insertMeshes[i].geometry), 
-                        materials.indexOf(insertMeshes[i].material), 
+                        geo, 
+                        mat, 
                         [insertMeshes[i].position.x, insertMeshes[i].position.y, insertMeshes[i].position.z],
                         undefined,
                         insertMeshes[i].clone()
