@@ -2319,7 +2319,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     insertBox = currentBox;
                     pen.isInsertingFlag = true;
                     pen.insertMeshes = storageManager.dataStringToMeshes(insertBox.get('meshes'));
-                    addInsertHelperToScene(pen.insertMeshes);
+                    pen.addInsertHelperToScene(pen.insertMeshes);
 
                     bubble('按住ctrl键可插入多个，shift切换使用的材质');
                     
