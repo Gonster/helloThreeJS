@@ -1407,18 +1407,18 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         directionalLight.shadowCameraRight = 1024 * boxScale;
         directionalLight.shadowBias = .000010;
         directionalLight.shadowDarkness = 0.4;
-        directionalLight.shadowMapWidth = 2048 * boxScale;
-        directionalLight.shadowMapHeight = 2048 * boxScale;
+        directionalLight.shadowMapWidth = 1024 * boxScale;
+        directionalLight.shadowMapHeight = 1024 * boxScale;
 
         // directionalLight.shadowCameraVisible = true;
-        directionalLight.shadowCascade = true;
-        directionalLight.shadowCascadeCount = 3;
-        directionalLight.shadowCascadeNearZ = [ -1.000, 0.9, 0.975 ];
-        directionalLight.shadowCascadeFarZ  = [  0.9, 0.975, 1.000 ];
-        directionalLight.shadowCascadeWidth = [ 2048, 2048, 2048 ];
-        directionalLight.shadowCascadeHeight = [ 2048, 2048, 2048 ];
-        directionalLight.shadowCascadeBias = [ 0.00005, 0.000065, 0.000065 ];
-        directionalLight.shadowCascadeOffset.set( 0, 0, -1024 );
+        // directionalLight.shadowCascade = true;
+        // directionalLight.shadowCascadeCount = 3;
+        // directionalLight.shadowCascadeNearZ = [ -1.000, 0.9, 0.975 ];
+        // directionalLight.shadowCascadeFarZ  = [  0.9, 0.975, 1.000 ];
+        // directionalLight.shadowCascadeWidth = [ 2048, 2048, 2048 ];
+        // directionalLight.shadowCascadeHeight = [ 2048, 2048, 2048 ];
+        // directionalLight.shadowCascadeBias = [ 0.00005, 0.000065, 0.000065 ];
+        // directionalLight.shadowCascadeOffset.set( 0, 0, -1024 );
         
         base.scene.add( directionalLight );
 
