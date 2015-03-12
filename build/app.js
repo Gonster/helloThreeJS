@@ -4013,6 +4013,53 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         bubble('插入结束');
     }
 
+    function rotateMeshes(angle, axisO, meshesO, baseMeshO) {
+        var meshes = meshesO || this.insertMeshes;
+        var baseMesh = baseMeshO || this.insertMeshesBase;
+        var axis = axisO || this.insertMeshesNormal;
+        var basePosition = baseMesh.position.clone();
+
+        for (var i = meshes.length - 1; i >= 0; i--) {
+            var rotateTarget = meshes[i].position.clone().sub(basePosition);
+            rotateTarget.applyAxisAngle(axis, angle);
+            meshes[i].position.copy(basePosition.clone().add(rotateTarget));
+            meshes[i].position.divideScalar( DEFAULT_BOX.width )
+            .floor()
+            .multiplyScalar( DEFAULT_BOX.width )
+            .addScalar( DEFAULT_BOX.width / 2.0 );
+        }
+    }
+
+    function reflectMeshes(isForward, axisUp, meshesO, baseMeshO) {
+        var meshes = meshesO || this.insertMeshes;
+        var baseMesh = baseMeshO || this.insertMeshesBase;
+        var axis = axisUp || this.insertMeshesNormal;
+        axis = axis.clone();
+        var basePosition = baseMesh.position.clone();
+        if(isForward) {
+            var t = axis.z;
+            axis.z = axis.y;
+            axis.y = axis.x;
+            axis.x = t;
+        }
+        else{
+            var t = axis.x;
+            axis.x = axis.y;
+            axis.y = axis.z;
+            axis.z = t;
+        }
+
+        for (var i = meshes.length - 1; i >= 0; i--) {
+            var rotateTarget = meshes[i].position.clone().sub(basePosition);
+            rotateTarget.reflect(axis);
+            meshes[i].position.copy(basePosition.clone().add(rotateTarget));
+            meshes[i].position.divideScalar( DEFAULT_BOX.width )
+            .floor()
+            .multiplyScalar( DEFAULT_BOX.width )
+            .addScalar( DEFAULT_BOX.width / 2.0 );
+        }
+    }
+
     Pen.prototype = {
         'calculateIntersectResult': calculateIntersectResult,
         'setMeshPositionToFitTheGrid': setMeshPositionToFitTheGrid,
@@ -4022,6 +4069,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'addInsertHelperToScene': addInsertHelperToScene,
         'updateInsertHelper': updateInsertHelper,
         'endInsert': endInsert,
+        'rotateMeshes': rotateMeshes,
+        'reflectMeshes': reflectMeshes,
         'draw': function (geo, material, xyz, intersect, mesh, notVisibleInTheScene){
 
             var geoIndex,currentBoxGeometryParent,materialIndex,currentBoxMaterialParent;
@@ -4552,7 +4601,14 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             LIGHT_PARAMS[base.renderType].basePlaneSegments, 
             LIGHT_PARAMS[base.renderType].basePlaneSegments
         );
-        basePlaneGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
+        // basePlaneGeometry.applyMatrix( new THREE.Matrix4().lookAt(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0) ) );
+        var m4 = new THREE.Matrix4().makeRotationX( -Math.PI / 2 );
+        for (var i = m4.elements.length - 1; i >= 0; i--) {
+            m4.elements[i] = Math.floor(m4.elements[i]);
+        };
+        basePlaneGeometry.applyMatrix( m4 );
+        // basePlaneGeometry.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0));
+        // basePlaneGeometry.lookAt(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0));
         var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grasslight-big.jpg');
         var skyTexture = THREE.ImageUtils.loadTexture('texture/sky.jpg');
         basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
@@ -4565,6 +4621,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
         basePlaneMesh.receiveShadow = true;
         basePlaneMesh.material.side = THREE.DoubleSide;
+
         // basePlaneMesh.visible = false;
         base.scene.add( basePlaneMesh );
         allIntersectableObjects.push( basePlaneMesh );
@@ -4584,10 +4641,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         directionalLight.shadowCameraLeft = -1024 * boxScale;
         directionalLight.shadowCameraBottom = 1024 * boxScale;
         directionalLight.shadowCameraRight = 1024 * boxScale;
-        directionalLight.shadowBias = .000020;
+        directionalLight.shadowBias = .000010;
         directionalLight.shadowDarkness = 0.4;
-        directionalLight.shadowMapWidth = 2048 * boxScale;
-        directionalLight.shadowMapHeight = 2048 * boxScale;
+        directionalLight.shadowMapWidth = 1024 * boxScale;
+        directionalLight.shadowMapHeight = 1024 * boxScale;
 
         // directionalLight.shadowCameraVisible = true;
         // directionalLight.shadowCascade = true;
@@ -4686,19 +4743,19 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             //add a solid cube
             if(currentToolsType === 0){
                 if(pen.isInsertingFlag){
-                    if(pen.insertTimes > 0 && !ctrlKey) {
-                            pen.endInsert();
-                            return;
-                    } 
+                    // if(pen.insertTimes > 0 && !ctrlKey) {
+                    //         pen.endInsert();
+                    //         return;
+                    // } 
                     if(isMouseMoving) return;
                     var deletedMeshes = pen.deleteMesh();
-                    actionRecorder.addAction('erase', deletedMeshes);
+                    if(deletedMeshes && deletedMeshes.length > 0) actionRecorder.addAction('erase', deletedMeshes);
                     var insertedMeshes = pen.insert();
                     actionRecorder.addAction('draw', insertedMeshes);
                     pen.insertTimes++;
-                    if(!ctrlKey) {
-                        pen.endInsert();
-                    }
+                    // if(!ctrlKey) {
+                    //     pen.endInsert();
+                    // }
                 }
                 else{
                     if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
@@ -4715,17 +4772,17 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             //remove cube
             if(currentToolsType === 1 && isEraseWhileMoving){
                 if(pen.isInsertingFlag){
-                    if(pen.insertTimes > 0 && !ctrlKey) {
-                            pen.endInsert();
-                            return;
-                    } 
+                    // if(pen.insertTimes > 0 && !ctrlKey) {
+                    //         pen.endInsert();
+                    //         return;
+                    // } 
                     if(isMouseMoving) return;
                     var deletedMeshes = pen.deleteMesh();
                     actionRecorder.addAction('erase', deletedMeshes);
                     pen.insertTimes++;
-                    if(!ctrlKey) {
-                        pen.endInsert();
-                    }
+                    // if(!ctrlKey) {
+                    //     pen.endInsert();
+                    // }
                 }
                 else{
                     if( intersect.object !== basePlaneMesh ) {
@@ -4842,6 +4899,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             intersects = calculateIntersectResult(event);
             updateHelperCube(intersects);
             if(pen.isInsertingFlag) pen.updateInsertHelper(pen.insertMeshes, intersects);
+            // console.log(intersects && intersects[0]);
         }
         
     }
@@ -4964,12 +5022,34 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         switch(event.keyCode){
             //c
             case 67:
-                iterateTextures();
+                if(!pen.isInsertingFlag){
+                    iterateTextures();
+                }
+                else{
+                    pen.rotateMeshes(-Math.PI / 2);
+                }
                 break;
             //x
             case 88:
-                iterateTextures(true);
+                if(!pen.isInsertingFlag){
+                    iterateTextures(true);
+                }
+                else{
+                    pen.rotateMeshes(Math.PI / 2);
+                }
                 break;
+            //f
+            case 102:
+                if(pen.isInsertingFlag){
+                    pen.reflectMeshes(true);
+                }
+                break;
+            //g
+            case 103:
+                if(!pen.isInsertingFlag){
+                    pen.reflectMeshes(false);
+                }
+                break;                
         }
     }
 
@@ -5618,7 +5698,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     pen.insertMeshes = storageManager.dataStringToMeshes(insertBox.get('meshes'));
                     pen.addInsertHelperToScene(pen.insertMeshes);
 
-                    bubble('按住ctrl键可插入多个，shift切换使用的材质，ESC取消插入');
+                    bubble('shift切换插入使用的材质，ESC结束插入；xc旋转，fg镜像');
                     
                 },
                 error: function() {

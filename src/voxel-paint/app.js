@@ -769,6 +769,53 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         bubble('插入结束');
     }
 
+    function rotateMeshes(angle, axisO, meshesO, baseMeshO) {
+        var meshes = meshesO || this.insertMeshes;
+        var baseMesh = baseMeshO || this.insertMeshesBase;
+        var axis = axisO || this.insertMeshesNormal;
+        var basePosition = baseMesh.position.clone();
+
+        for (var i = meshes.length - 1; i >= 0; i--) {
+            var rotateTarget = meshes[i].position.clone().sub(basePosition);
+            rotateTarget.applyAxisAngle(axis, angle);
+            meshes[i].position.copy(basePosition.clone().add(rotateTarget));
+            meshes[i].position.divideScalar( DEFAULT_BOX.width )
+            .floor()
+            .multiplyScalar( DEFAULT_BOX.width )
+            .addScalar( DEFAULT_BOX.width / 2.0 );
+        }
+    }
+
+    function reflectMeshes(isForward, axisUp, meshesO, baseMeshO) {
+        var meshes = meshesO || this.insertMeshes;
+        var baseMesh = baseMeshO || this.insertMeshesBase;
+        var axis = axisUp || this.insertMeshesNormal;
+        axis = axis.clone();
+        var basePosition = baseMesh.position.clone();
+        if(isForward) {
+            var t = axis.z;
+            axis.z = axis.y;
+            axis.y = axis.x;
+            axis.x = t;
+        }
+        else{
+            var t = axis.x;
+            axis.x = axis.y;
+            axis.y = axis.z;
+            axis.z = t;
+        }
+
+        for (var i = meshes.length - 1; i >= 0; i--) {
+            var rotateTarget = meshes[i].position.clone().sub(basePosition);
+            rotateTarget.reflect(axis);
+            meshes[i].position.copy(basePosition.clone().add(rotateTarget));
+            meshes[i].position.divideScalar( DEFAULT_BOX.width )
+            .floor()
+            .multiplyScalar( DEFAULT_BOX.width )
+            .addScalar( DEFAULT_BOX.width / 2.0 );
+        }
+    }
+
     Pen.prototype = {
         'calculateIntersectResult': calculateIntersectResult,
         'setMeshPositionToFitTheGrid': setMeshPositionToFitTheGrid,
@@ -778,6 +825,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'addInsertHelperToScene': addInsertHelperToScene,
         'updateInsertHelper': updateInsertHelper,
         'endInsert': endInsert,
+        'rotateMeshes': rotateMeshes,
+        'reflectMeshes': reflectMeshes,
         'draw': function (geo, material, xyz, intersect, mesh, notVisibleInTheScene){
 
             var geoIndex,currentBoxGeometryParent,materialIndex,currentBoxMaterialParent;
@@ -1729,12 +1778,34 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         switch(event.keyCode){
             //c
             case 67:
-                iterateTextures();
+                if(!pen.isInsertingFlag){
+                    iterateTextures();
+                }
+                else{
+                    pen.rotateMeshes(-Math.PI / 2);
+                }
                 break;
             //x
             case 88:
-                iterateTextures(true);
+                if(!pen.isInsertingFlag){
+                    iterateTextures(true);
+                }
+                else{
+                    pen.rotateMeshes(Math.PI / 2);
+                }
                 break;
+            //f
+            case 102:
+                if(pen.isInsertingFlag){
+                    pen.reflectMeshes(true);
+                }
+                break;
+            //g
+            case 103:
+                if(!pen.isInsertingFlag){
+                    pen.reflectMeshes(false);
+                }
+                break;                
         }
     }
 
@@ -2383,7 +2454,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     pen.insertMeshes = storageManager.dataStringToMeshes(insertBox.get('meshes'));
                     pen.addInsertHelperToScene(pen.insertMeshes);
 
-                    bubble('shift切换插入使用的材质，ESC结束插入');
+                    bubble('shift切换插入使用的材质，ESC结束插入；xc旋转，fg镜像');
                     
                 },
                 error: function() {
