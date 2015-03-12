@@ -1158,6 +1158,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 }
             }
 
+            pen.endInsert();
             sidebarParams.clearAll();
             actionRecorder = new ActionRecorder();
             actionRecorder.updateDom();
@@ -1257,25 +1258,30 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             }
         },
         'insert': function() {
-          document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
-          document.getElementById('openIt').removeEventListener('click', onDeleteItClick, false);
-            document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
+            if(pen.isInsertingFlag){
+                pen.endInsert();
+            }
+            else{
+              document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
+              document.getElementById('openIt').removeEventListener('click', onDeleteItClick, false);
+              document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
 
-          document.getElementById('openIt').addEventListener('click', onInsertItClick, false);
-          var query = new AV.Query(Box);
-          query.select('name');
-          query.equalTo('user', AV.User.current());
+              document.getElementById('openIt').addEventListener('click', onInsertItClick, false);
+              var query = new AV.Query(Box);
+              query.select('name');
+              query.equalTo('user', AV.User.current());
 
-          var query2 = new AV.Query(Keep);
-          query2.select('name');
-          query2.select('box.name', 'box.user.username');
-          query2.include('box.name', 'box.user.username');
-          query2.equalTo('user', AV.User.current());
+              var query2 = new AV.Query(Keep);
+              query2.select('name');
+              query2.select('box.name', 'box.user.username');
+              query2.include('box.name', 'box.user.username');
+              query2.equalTo('user', AV.User.current());
 
-          selectModalInit(query.find(), query2.find());
+              selectModalInit(query.find(), query2.find());
 
-          $('#openModal .modal-body #boxTitle').text('我的文件');
-          $('#openModal .modal-body #keepTitle').text('我的收藏');  
+              $('#openModal .modal-body #boxTitle').text('我的文件');
+              $('#openModal .modal-body #keepTitle').text('我的收藏');  
+            }
         }
     };
 
@@ -2339,6 +2345,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             var query = new AV.Query(Box);
             query.get( oi, {
                 success: function(currentBox) {
+                    pen.endInsert();
                     sidebarParams.clearAll();
                     actionRecorder = new ActionRecorder();
                     actionRecorder.updateDom();
@@ -2354,6 +2361,9 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                         storageManager.save(storageManager.storageKeys.sidebar);
                         storageManager.save();
                     }
+                },
+                error: function() {
+                    bubble('打开失败');
                 }
             });
         }
@@ -2430,6 +2440,16 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             var deletingObject = AV.Object.createWithoutData(className, oi);
             deletingObject.destroy().then(
                 function(currentObject) {
+                    if( className == 'Box' && box.id == oi ) {
+                        storageManager.save(storageManager.storageKeys.localChanges, '1');
+                        storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+                        storageManager.save(storageManager.storageKeys.boxId, '');
+                        storageManager.save(storageManager.storageKeys.updatedAt, '');
+                        var theBox = new Box();
+                        theBox.set('meshes', Box.get('meshes'));
+                        theBox.set('camera', Box.get('camera'));
+                        box = theBox;
+                    }
                     bubble('已删除');
                 },
                 function(error) {
@@ -2455,7 +2475,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     pen.insertMeshes = storageManager.dataStringToMeshes(insertBox.get('meshes'));
                     if(pen.insertMeshes && pen.insertMeshes.length > 0) {
                         pen.addInsertHelperToScene(pen.insertMeshes);
-                        bubble('shift切换插入使用的材质，ESC结束插入；xc旋转，fg镜像');
+                        bubble('shift切换插入使用的材质，ESC或再次点击插入结束；x、c旋转，f、g镜像');
                     }
                     else{
                         pen.endInsert();
