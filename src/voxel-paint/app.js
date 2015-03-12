@@ -414,8 +414,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                         }
                     },
                     error: function(retrievedBox, error) {
-                        bubble('载入失败，' + error.message);
                         storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                        bubble('载入失败，' + error.message);
                     }
                 });
             }
@@ -1113,18 +1113,17 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     }
                     box.save({
                         success: function(box) {
-                            bubble('已保存至云端');
                             storageManager.save(storageManager.storageKeys.updatedAt, box.updatedAt);
                             storageManager.save(storageManager.storageKeys.boxId, box.id);
                             storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+                            bubble('已保存至云端');
                         },
                         error: function(box, error) {
-                            bubble('云端保存失败，将会保存在本地' + error.message);
                             storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
 
                             actionRecorder.changed = '1';
-
                             storageManager.save(storageManager.storageKeys.localChanges, '1');
+                            bubble('云端保存失败，将会保存在本地' + error.message);
                         }
                     });
                 }
@@ -2554,8 +2553,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         if(shareHash) {
             shareHash = shareHash.substring(1);
             storageManager.loadShared(shareHash, function() {                
-                bubble('载入分享文件失败');
                 storageManager.loadRemote();
+                bubble('载入分享文件失败');
             });
         }
         else{
@@ -2569,8 +2568,8 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         if(shareHash) {
             shareHash = shareHash.substring(1);
             storageManager.loadShared(shareHash, function() {
-                bubble('载入分享文件失败');
                 storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                bubble('载入分享文件失败');
             });
         }
         else{
