@@ -1308,7 +1308,14 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             LIGHT_PARAMS[base.renderType].basePlaneSegments, 
             LIGHT_PARAMS[base.renderType].basePlaneSegments
         );
-        basePlaneGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
+        // basePlaneGeometry.applyMatrix( new THREE.Matrix4().lookAt(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0) ) );
+        var m4 = new THREE.Matrix4().makeRotationX( -Math.PI / 2 );
+        for (var i = m4.elements.length - 1; i >= 0; i--) {
+            m4.elements[i] = Math.floor(m4.elements[i]);
+        };
+        basePlaneGeometry.applyMatrix( m4 );
+        // basePlaneGeometry.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0));
+        // basePlaneGeometry.lookAt(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0));
         var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grasslight-big.jpg');
         var skyTexture = THREE.ImageUtils.loadTexture('texture/sky.jpg');
         basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
@@ -1321,6 +1328,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
         basePlaneMesh.receiveShadow = true;
         basePlaneMesh.material.side = THREE.DoubleSide;
+
         // basePlaneMesh.visible = false;
         base.scene.add( basePlaneMesh );
         allIntersectableObjects.push( basePlaneMesh );
@@ -1340,10 +1348,10 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         directionalLight.shadowCameraLeft = -1024 * boxScale;
         directionalLight.shadowCameraBottom = 1024 * boxScale;
         directionalLight.shadowCameraRight = 1024 * boxScale;
-        directionalLight.shadowBias = .000020;
+        directionalLight.shadowBias = .000010;
         directionalLight.shadowDarkness = 0.4;
-        directionalLight.shadowMapWidth = 2048 * boxScale;
-        directionalLight.shadowMapHeight = 2048 * boxScale;
+        directionalLight.shadowMapWidth = 1024 * boxScale;
+        directionalLight.shadowMapHeight = 1024 * boxScale;
 
         // directionalLight.shadowCameraVisible = true;
         // directionalLight.shadowCascade = true;
@@ -1442,19 +1450,19 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             //add a solid cube
             if(currentToolsType === 0){
                 if(pen.isInsertingFlag){
-                    if(pen.insertTimes > 0 && !ctrlKey) {
-                            pen.endInsert();
-                            return;
-                    } 
+                    // if(pen.insertTimes > 0 && !ctrlKey) {
+                    //         pen.endInsert();
+                    //         return;
+                    // } 
                     if(isMouseMoving) return;
                     var deletedMeshes = pen.deleteMesh();
                     if(deletedMeshes && deletedMeshes.length > 0) actionRecorder.addAction('erase', deletedMeshes);
                     var insertedMeshes = pen.insert();
                     actionRecorder.addAction('draw', insertedMeshes);
                     pen.insertTimes++;
-                    if(!ctrlKey) {
-                        pen.endInsert();
-                    }
+                    // if(!ctrlKey) {
+                    //     pen.endInsert();
+                    // }
                 }
                 else{
                     if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
@@ -1471,17 +1479,17 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             //remove cube
             if(currentToolsType === 1 && isEraseWhileMoving){
                 if(pen.isInsertingFlag){
-                    if(pen.insertTimes > 0 && !ctrlKey) {
-                            pen.endInsert();
-                            return;
-                    } 
+                    // if(pen.insertTimes > 0 && !ctrlKey) {
+                    //         pen.endInsert();
+                    //         return;
+                    // } 
                     if(isMouseMoving) return;
                     var deletedMeshes = pen.deleteMesh();
                     actionRecorder.addAction('erase', deletedMeshes);
                     pen.insertTimes++;
-                    if(!ctrlKey) {
-                        pen.endInsert();
-                    }
+                    // if(!ctrlKey) {
+                    //     pen.endInsert();
+                    // }
                 }
                 else{
                     if( intersect.object !== basePlaneMesh ) {
@@ -1598,6 +1606,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             intersects = calculateIntersectResult(event);
             updateHelperCube(intersects);
             if(pen.isInsertingFlag) pen.updateInsertHelper(pen.insertMeshes, intersects);
+            // console.log(intersects && intersects[0]);
         }
         
     }
@@ -2374,7 +2383,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     pen.insertMeshes = storageManager.dataStringToMeshes(insertBox.get('meshes'));
                     pen.addInsertHelperToScene(pen.insertMeshes);
 
-                    bubble('按住ctrl键可插入多个，shift切换使用的材质，ESC取消插入');
+                    bubble('shift切换插入使用的材质，ESC结束插入');
                     
                 },
                 error: function() {
