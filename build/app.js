@@ -4391,7 +4391,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 bubble(info);
             }
         },
-        newFile: function() {
+        'newFile': function() {
 
             if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
 
@@ -4435,13 +4435,13 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#openModal .modal-body #boxTitle').text('我的文件');
             $('#openModal .modal-body #keepTitle').text('我的收藏');
         },
-        share: function() {
+        'share': function() {
             var query = new AV.Query(Box);
             query.select('name');
             query.equalTo('user', AV.User.current());
             selectModalInit(query.find(), undefined, 'shareModal', ['boxToShare']);
         },
-        delete: function() {
+        'delete': function() {
             document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
             document.getElementById('openIt').removeEventListener('click', onDeleteItClick, false);
             document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
@@ -4462,7 +4462,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             $('#openModal .modal-body #boxTitle').text('我的文件');
             $('#openModal .modal-body #keepTitle').text('我的收藏');
         },
-        keep: function() {
+        'keep': function() {
             if( box && box.id ) {
                 var keepingBox = AV.Object.createWithoutData('Box', box.id);
                 var query = new AV.Query(Keep);
@@ -4499,7 +4499,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 bubble('只能收藏已保存的文件');
             }
         },
-        insert: function() {
+        'insert': function() {
           document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
           document.getElementById('openIt').removeEventListener('click', onDeleteItClick, false);
             document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
@@ -5696,10 +5696,14 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                     insertBox = currentBox;
                     pen.isInsertingFlag = true;
                     pen.insertMeshes = storageManager.dataStringToMeshes(insertBox.get('meshes'));
-                    pen.addInsertHelperToScene(pen.insertMeshes);
-
-                    bubble('shift切换插入使用的材质，ESC结束插入；xc旋转，fg镜像');
-                    
+                    if(pen.insertMeshes && pen.insertMeshes.length > 0) {
+                        pen.addInsertHelperToScene(pen.insertMeshes);
+                        bubble('shift切换插入使用的材质，ESC结束插入；xc旋转，fg镜像');
+                    }
+                    else{
+                        pen.endInsert();
+                        bubble('载入文件为空，已取消插入');
+                    }
                 },
                 error: function() {
                     bubble('载入失败，无法插入');
