@@ -132,7 +132,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     };
 
     VoxelAnimationManager.prototype = {  
-        'asyncLoadDefaultInterval': 1,
+        'asyncLoadDefaultInterval': 0,
         'loadBoxAnimation': function() {            
                 
                 var meshes = voxelAnimationManager.currentMeshes;
@@ -855,7 +855,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             currentCube.receiveShadow = true;
             intersect ? setMeshPositionToFitTheGrid( currentCube, intersect ) : currentCube.position.set(xyz[0], xyz[1], xyz[2]);
             (!notVisibleInTheScene) || (currentCube.visible = false);
-
+            currentCube.matrixAutoUpdate = false;
             base.scene.add( currentCube );
             allIntersectableObjects.push( currentCube );
 
