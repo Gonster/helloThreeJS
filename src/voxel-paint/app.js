@@ -1387,7 +1387,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         basePlaneMesh.material.side = THREE.DoubleSide;
 
         // basePlaneMesh.visible = false;
-        // base.scene.add( basePlaneMesh );
+        base.scene.add( basePlaneMesh );
         allIntersectableObjects.push( basePlaneMesh );
 
         //light
@@ -1397,7 +1397,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         directionalLight = new THREE.DirectionalLight( 0xeeeeee, LIGHT_PARAMS[base.renderType].directionalLightDensity );
         directionalLight.position.set( 0, 6000, 5000 );
         directionalLight.target.position.set( 0, 0, 0 );
-        // directionalLight.castShadow = true;
+        directionalLight.castShadow = true;
         directionalLight.shadowCameraNear = base.camera.near;
         directionalLight.shadowCameraFar = base.camera.far;
         directionalLight.shadowCameraFov = base.cam
@@ -1407,23 +1407,23 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         directionalLight.shadowCameraRight = 1024 * boxScale;
         directionalLight.shadowBias = .000010;
         directionalLight.shadowDarkness = 0.4;
-        directionalLight.shadowMapWidth = 1024 * boxScale;
-        directionalLight.shadowMapHeight = 1024 * boxScale;
+        directionalLight.shadowMapWidth = 2048 * boxScale;
+        directionalLight.shadowMapHeight = 2048 * boxScale;
 
         // directionalLight.shadowCameraVisible = true;
-        // directionalLight.shadowCascade = true;
-        // directionalLight.shadowCascadeCount = 3;
-        // directionalLight.shadowCascadeNearZ = [ -1.000, 0.9, 0.975 ];
-        // directionalLight.shadowCascadeFarZ  = [  0.9, 0.975, 1.000 ];
-        // directionalLight.shadowCascadeWidth = [ 2048, 2048, 2048 ];
-        // directionalLight.shadowCascadeHeight = [ 2048, 2048, 2048 ];
-        // directionalLight.shadowCascadeBias = [ 0.00005, 0.000065, 0.000065 ];
-        // directionalLight.shadowCascadeOffset.set( 0, 0, -1024 );
+        directionalLight.shadowCascade = true;
+        directionalLight.shadowCascadeCount = 3;
+        directionalLight.shadowCascadeNearZ = [ -1.000, 0.9, 0.975 ];
+        directionalLight.shadowCascadeFarZ  = [  0.9, 0.975, 1.000 ];
+        directionalLight.shadowCascadeWidth = [ 2048, 2048, 2048 ];
+        directionalLight.shadowCascadeHeight = [ 2048, 2048, 2048 ];
+        directionalLight.shadowCascadeBias = [ 0.00005, 0.000065, 0.000065 ];
+        directionalLight.shadowCascadeOffset.set( 0, 0, -1024 );
         
-        // base.scene.add( directionalLight );
+        base.scene.add( directionalLight );
 
         hemisphereLight = new THREE.HemisphereLight( 0xffffff, 0x606060, 1 );
-        // base.scene.add( hemisphereLight );
+        base.scene.add( hemisphereLight );
 
         // SKYDOME
         // var uniforms = {
@@ -1445,7 +1445,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         // } );
         var skyMat  = new THREE.MeshLambertMaterial({color: 0x3366ff, map: skyTexture, side: THREE.BackSide, emissive: 0xffffff });
         var sky = new THREE.Mesh( skyGeo, skyMat );
-        // base.scene.add( sky );
+        base.scene.add( sky );
 
         //helper cube
         helperCube = new THREE.Mesh( currentBoxGeometry, currentHelperBoxMaterial );
@@ -1462,12 +1462,12 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         //fog
         // fog = new THREE.Fog(0xeeffee, LIGHT_PARAMS[base.renderType].fogNear, LIGHT_PARAMS[base.renderType].fogFar);
         fog = new THREE.FogExp2( 0xffffff, 0.000053 );
-        // base.scene.fog = fog;
+        base.scene.fog = fog;
 
         base.controls.settings.boxScale = boxScale;
 
         base.renderer.setClearColor( 0xf0f0f0 );
-        // base.renderer.shadowMapEnabled = true;
+        base.renderer.shadowMapEnabled = true;
         base.renderer.shadowMapType = THREE.PCFSoftShadowMap;
         base.renderer.shadowMapCullFace = THREE.CullFaceBack;
         base.renderer.gammaInput = true;
