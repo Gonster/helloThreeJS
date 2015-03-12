@@ -1387,7 +1387,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         basePlaneMesh.material.side = THREE.DoubleSide;
 
         // basePlaneMesh.visible = false;
-        base.scene.add( basePlaneMesh );
+        // base.scene.add( basePlaneMesh );
         allIntersectableObjects.push( basePlaneMesh );
 
         //light
