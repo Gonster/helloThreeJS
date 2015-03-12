@@ -2884,7 +2884,7 @@ if ( typeof module === 'object' ) {
         this.domParent.appendChild( this.renderer.domElement );
         this.scene = scene || new THREE.Scene();
         this.camera = camera
-            || new THREE.PerspectiveCamera( 35, this.WINDOW_WIDTH / this.WINDOW_HEIGHT, .1, 100000 );
+            || new THREE.PerspectiveCamera( 35, this.WINDOW_WIDTH / this.WINDOW_HEIGHT, .1, 10000 );
         this.camera.position.set( 1000, 500, 1000 );
         this.camera.lookAt( this.scene.position );
 
@@ -3380,7 +3380,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
     };
 
     VoxelAnimationManager.prototype = {  
-        'asyncLoadDefaultInterval': 1,
+        'asyncLoadDefaultInterval': 0,
         'loadBoxAnimation': function() {            
                 
                 var meshes = voxelAnimationManager.currentMeshes;
@@ -4243,7 +4243,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         }
     ];
 
-    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width, 1, 1, 1  );
+    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width+1, DEFAULT_BOX.width+1, DEFAULT_BOX.width+1, 1, 1, 1  );
     var geometries = [
         {
             'name': 'default',
@@ -4265,6 +4265,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'texturesType': 0,
         'toggleShadow': function() {
             directionalLight.castShadow = !directionalLight.castShadow;
+            base.renderer.shadowMapEnabled = !base.renderer.shadowMapEnabled;
             if(directionalLight.castShadow) bubble('阴影打开');
             else bubble('阴影关闭');
         },
