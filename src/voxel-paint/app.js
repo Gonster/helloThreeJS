@@ -855,7 +855,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             currentCube.receiveShadow = true;
             intersect ? setMeshPositionToFitTheGrid( currentCube, intersect ) : currentCube.position.set(xyz[0], xyz[1], xyz[2]);
             (!notVisibleInTheScene) || (currentCube.visible = false);
-            currentCube.matrixAutoUpdate = false;
+
             base.scene.add( currentCube );
             allIntersectableObjects.push( currentCube );
 
@@ -995,7 +995,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         }
     ];
 
-    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width, 1, 1, 1  );
+    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width+1, DEFAULT_BOX.width+1, DEFAULT_BOX.width+1, 1, 1, 1  );
     var geometries = [
         {
             'name': 'default',
@@ -1017,6 +1017,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
         'texturesType': 0,
         'toggleShadow': function() {
             directionalLight.castShadow = !directionalLight.castShadow;
+            base.renderer.shadowMapEnabled = !base.renderer.shadowMapEnabled;
             if(directionalLight.castShadow) bubble('阴影打开');
             else bubble('阴影关闭');
         },
