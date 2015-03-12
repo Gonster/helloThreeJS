@@ -1166,6 +1166,7 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
             storageManager.save(storageManager.storageKeys.camera);
             storageManager.save(storageManager.storageKeys.sidebar);
             storageManager.save(storageManager.storageKeys.updatedAt,'');
+            storageManager.save(storageManager.storageKeys.boxId,'');
             storageManager.save(storageManager.storageKeys.boxName,''); 
             storageManager.save();
             bubble('新建'); 
@@ -1795,14 +1796,14 @@ AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512
                 }
                 break;
             //f
-            case 102:
+            case 70:
                 if(pen.isInsertingFlag){
                     pen.reflectMeshes(true);
                 }
                 break;
             //g
-            case 103:
-                if(!pen.isInsertingFlag){
+            case 71:
+                if(pen.isInsertingFlag){
                     pen.reflectMeshes(false);
                 }
                 break;                
