@@ -50,6 +50,10 @@
 	/*right: 1px;*/
 }
 
+#shareLink {
+	width: 100%;
+}
+
 @media screen and (max-width: 600px) {
 	.sidebar {
 		position: absolute;
@@ -57,6 +61,23 @@
 		top: 60%;
 		overflow-x: auto;
 	}
+}
+
+.btn-group-accountbtn {
+	margin: 0 0 8px 0;
+}
+
+.btn-group-accountbtn .btn {
+	border-radius: 0;
+	border: none;
+	background-color: transparent;
+}
+
+.btn-group-accountbtn #loginMessage {
+	border: none;
+	background-color: transparent;
+	opacity: 0.6;
+	display: none;
 }
 
 .sidebar .btn-color {
@@ -81,6 +102,63 @@
 	padding: 10px 3px 10px 3px;
 	display: block;
 	width: 100%;
+}
+
+#keepTitle {
+	padding-top: 15px; 
+}
+#currentFileName {
+	border: none;
+	background-color: transparent;
+	opacity: 0.6;
+	width: 100%;
+	padding: 0 10px 4px 0;
+}
+#currentFileState {
+	border: none;
+	background-color: transparent;
+	opacity: 0.6;
+	width: 100%;
+	padding: 0 10px 4px 0;
+}
+
+#bubble {
+	position: absolute;
+	top: 10px;
+	width: 100%;
+}
+.alert-vp {
+	margin-bottom: 5px;
+	top: auto;
+	width: 10%;
+	left: 45%;
+	position: relative;
+	padding: 5px;
+	background-color: rgba(0, 0, 0, 0.4);
+	border-color: rgba(0, 0, 0, 0.2);
+	text-align: center;
+	color: white;
+	box-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
+	z-index: 200;
+	word-wrap: break-word;
+}
+
+@media screen and (max-width: 600px) {
+	.alert-vp {
+		margin-bottom: 0;
+		top: 10px;
+		width: 50%;
+		left: 25%;
+		position: relative;
+		padding: 5px;
+		background-color: rgba(0, 0, 0, 0.2);
+		border-color: rgba(0, 0, 0, 0.2);
+		text-align: center;
+		color: white;
+		box-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
+		z-index: 200;
+		word-wrap: break-word;
+	}
 }
 
 .btn-group-rect label.btn {

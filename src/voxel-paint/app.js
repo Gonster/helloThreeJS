@@ -1,25 +1,30 @@
 /**
 *@author Gonster  ( gonster.github.io )
 */
-        var vertexShader ='varying vec3 vWorldPosition;'
-            +'void main() {'
-            +'   vec4 worldPosition = modelMatrix * vec4( position, 1.0 );'
-            +'   vWorldPosition = worldPosition.xyz;'
-            +'    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );'
-            +'}';
-        
-        var fragmentShader = 'uniform vec3 topColor;'
-            +'uniform vec3 bottomColor;'
-            +'uniform float offset;'
-            +'uniform float exponent;'
-            +'varying vec3 vWorldPosition;'
-            +'void main() {'
-            +    'float h = normalize( vWorldPosition + offset ).y;'
-            +    'gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );'
-            +'}';
-        
+var vertexShader ='varying vec3 vWorldPosition;'
+    +'void main() {'
+    +'   vec4 worldPosition = modelMatrix * vec4( position, 1.0 );'
+    +'   vWorldPosition = worldPosition.xyz;'
+    +'    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );'
+    +'}';
 
-(function( window, document, Base, THREE, Detector ){
+var fragmentShader = 'uniform vec3 topColor;'
+    +'uniform vec3 bottomColor;'
+    +'uniform float offset;'
+    +'uniform float exponent;'
+    +'varying vec3 vWorldPosition;'
+    +'void main() {'
+    +    'float h = normalize( vWorldPosition + offset ).y;'
+    +    'gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );'
+    +'}';
+
+
+AV.initialize("i5m1bad33f8bm725g0lan5wd8hhc1c4qhyz3cyq4b0qoyvja", "2w44ugxt0z512vitlk5in4c4a95acbyj8qiqlgcuh3p9xm5t");
+
+(function( window, document, Base, THREE, Detector ) {
+    //login alert flag
+    var loginAlertFlag = false;
+
     //image download dom element
     var imageCaptureDomElement = document.createElement('a');
     imageCaptureDomElement.id = 'imageCapture';
@@ -27,7 +32,21 @@
     imageCaptureDomElement.target = '_blank';
     document.body.appendChild(imageCaptureDomElement);
 
+    var Box = AV.Object.extend('Box');
+
+    var box = new Box();
+
+    var insertBox = undefined;
+
+    var Keep = AV.Object.extend('Keep');
+
+    var keep = new Keep();
+
     //utils
+    function isFileOfOthers() {
+        return (AV.User.current() && box && box.get('user') && (AV.User.current().id !== box.get('user').id));
+    }
+
     function iterateTextures( isReversed ){
         var textureId = sidebarParams['textures'] + ((isReversed) ? -1 : 1 )
         var radio = document.getElementById('texture'+textureId);
@@ -113,7 +132,7 @@
     };
 
     VoxelAnimationManager.prototype = {  
-        'asyncLoadDefaultInterval': 1,
+        'asyncLoadDefaultInterval': 0,
         'loadBoxAnimation': function() {            
                 
                 var meshes = voxelAnimationManager.currentMeshes;
@@ -145,12 +164,12 @@
         }
     };
 
-    var VoxelPaintStorageManager = function(isLoadingBoxEnd){
+    var StorageManager = function(isLoadingBoxEnd){
         //loading animation flag   not end yet
         this.isLoadingBoxEnd = isLoadingBoxEnd;
     };
 
-    VoxelPaintStorageManager.prototype = {
+    StorageManager.prototype = {
         'LOAD_TYPE': {
             'async': 0,
             'sync': 1
@@ -158,20 +177,24 @@
         'storageKeys': {
             'meshes': 'vp_meshs',
             'camera': 'vp_camera',
-            'sidebar': 'vp_sidebar'
+            'sidebar': 'vp_sidebar',
+            'boxId': 'vp_box_id',
+            'updatedAt': 'vp_updatedAt',
+            'boxName': 'vp_box_name',
+            'localChanges': 'vp_local_changes'
         },
-        'load': function (key){
+        'load': function(key) {
             return  window.localStorage && window.localStorage.getItem(key || this.storageKeys.meshes);
         },
-        'save': function (key, data){
+        'save': function(key, data) {
             if( ! window.localStorage ) return;
             var save = '';
-            if( ! data ){
+            if( data === undefined || data === null ){
                 switch(key){
                     default:
                     case this.storageKeys.meshes:
                     case undefined:
-                        if( ! this.isLoadingBoxEnd && actionRecorder.currentActionIndex < 0) return;
+                        // if( ! this.isLoadingBoxEnd && actionRecorder.currentActionIndex < 0) return;
                         save += DEFAULT_BOX.width + ':';
                         for (var i = 0, l = cubeMeshes.length; i < l; i++) {
                             save += cubeMeshes[i].geo.id.replace('geo','') + ',';
@@ -193,12 +216,12 @@
             else save = data;
             window.localStorage.setItem(key || this.storageKeys.meshes, save);
         },
-        'loadMeshes': function loadMeshes(key, loadType, animation){
+        'loadMeshes': function loadMeshes(key, loadType, animation, isNotLocalStorage) {
             this.isLoadingBoxEnd = false;
             var loadDataArray = []; 
             var boxWidth = DEFAULT_BOX.width; 
             {
-                var load = this.load(key);
+                var load = isNotLocalStorage ? key : this.load(key);
                 if(load) {
                     var array = load.split(':');
                     if(array){
@@ -254,17 +277,172 @@
                             }
                         }
                         voxelAnimationManager.begin(animation, cubeMeshes);
+                        if(!isNotLocalStorage){
+                            bubble('载入本地数据完成，左键单击可立即完成动画');
+                        } 
+                        else{
+                            bubble('载入完成，左键单击可立即完成动画');
+                        } 
                         break;
                 }
             }
             else{
+                bubble('无本地数据，新建文件');
                 voxelAnimationManager.endFlag = true;
             }
         },
-        'loadCamera': function loadCamera(key) {
+        'dataStringToMeshes': function loadMeshes(dataString) {
+            var loadDataArray = []; 
+            var meshes = [];
+            var boxWidth = DEFAULT_BOX.width; 
+            {
+                var load = dataString;
+                if(load) {
+                    var array = load.split(':');
+                    if(array){
+                        if(array.length === 2){
+                            boxWidth = ( Number(array[0]) || 50 ) / DEFAULT_BOX.width;
+                            loadDataArray = array[1].split(';');
+                        }
+                        else{
+                            boxWidth = 50 / DEFAULT_BOX.width;
+                            loadDataArray = array[0].split(';');
+                        }
+                    }
+                }
+            }
+            if(loadDataArray.length > 0){
+                for(var i = 0, l = loadDataArray.length; i < l; i++){
+                    var currentData = loadDataArray[i].split(',');
+                    if( currentData.length > 2 ){
+
+                        var geoIndex = Number(currentData[0]) || 0;
+                        var currentBoxGeometryParent = geometries[geoIndex];
+                    
+                        var materialIndex = Number(currentData[1]) || 0;
+                        var currentBoxMaterialParent = materials[materialIndex];
+
+                        var currentBoxGeometry = currentBoxGeometryParent.data;
+                        var currentBoxMaterial = currentBoxMaterialParent.data;
+
+                        var currentCube = new THREE.Mesh( currentBoxGeometry, currentBoxMaterial );
+                        currentCube.position.set(Number(currentData[2]) / boxWidth, Number(currentData[3]) / boxWidth, Number(currentData[4]) / boxWidth);
+                        meshes.push(currentCube);
+                    }
+                }
+            }
+            return meshes;
+        },
+        'loadRemote': function loadRemote() {
+            if( ! window.localStorage ) return;
+            var boxId = this.load(this.storageKeys.boxId);
+            var updatedAt = this.load(this.storageKeys.updatedAt);
+            if(boxId) {
+                bubble('载入云端文件...');
+                var query = new AV.Query(Box);
+                query.select('name', 'user');
+                query.equalTo('objectId', boxId)
+                query.first({
+                    success: function(retrievedBox) {
+                        if(retrievedBox.updatedAt.toString() === updatedAt) {
+                            box = retrievedBox;
+                            retrievedBox.set('meshes', storageManager.load(storageManager.storageKeys.meshes));
+                            retrievedBox.set('camera', storageManager.load(storageManager.storageKeys.camera));
+
+                            storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+                            actionRecorder.changed = storageManager.load(storageManager.storageKeys.localChanges);
+
+                            storageManager.loadCamera(box.get('camera'), true);
+                            storageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                        }
+                        else{
+                            box = retrievedBox;
+                            if(retrievedBox.get('user').id === AV.User.current().id) {
+                                var localChanges = actionRecorder.changed = storageManager.load(storageManager.storageKeys.localChanges);
+                                if(localChanges === '0' || (localChanges !== '0' && confirm('上次关闭前可能未完成保存，是否载入云端文件？若取消则将本地版本视为新文件'))) {
+                                    var q = new AV.Query(Box);
+                                    q.get(retrievedBox.id, {
+                                        success: function(currentBox) {
+                                            box = currentBox;
+
+                                            storageManager.loadCamera(box.get('camera'), true);
+                                            storageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+
+                                            // storageManager.save(storageManager.storageKeys.localChanges, '0');
+                                            storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+                                            storageManager.save(storageManager.storageKeys.updatedAt, box.updatedAt);
+                                            storageManager.save(storageManager.storageKeys.camera);
+                                            storageManager.save();
+                                        },
+                                        error: function(currentBox, error) {
+                                            retrievedBox.set('meshes', storageManager.load(storageManager.storageKeys.meshes));
+                                            retrievedBox.set('camera', storageManager.load(storageManager.storageKeys.camera));
+
+                                            storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                                        }
+                                    });
+                                }
+                                else{
+
+                                    box = new Box();
+                                    storageManager.save(storageManager.storageKeys.boxId,'');
+                                    storageManager.save(storageManager.storageKeys.updatedAt,'');
+                                    storageManager.save(storageManager.storageKeys.boxName,'');       
+                                    storageManager.save(storageManager.storageKeys.localChanges,'1');                
+                                    this.changed = 1;
+
+                                    storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+
+                                    bubble('由于本地此文件与云端文件在同一文件的基础上做了不同的改动，将本地版本与云端此文件视为不同的文件');
+
+                                }
+                            }
+                            else{
+                                var q = new  AV.Query(Box);
+                                q.get(retrievedBox.id, {
+                                    success: function(currentBox) {
+                                        box = currentBox;
+
+                                        storageManager.loadCamera(box.get('camera'), true);
+                                        storageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                                    },
+                                    error: function(currentBox, error) {
+                                        storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                                    }
+                                });
+                            }
+                        }
+                    },
+                    error: function(retrievedBox, error) {
+                        storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                        bubble('载入失败，' + error.message);
+                    }
+                });
+            }
+            else {
+                storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+            }
+        },
+        'loadShared': function loadShared(objectId, errorCallback) {
+            var q = new  AV.Query(Box);
+            q.get(objectId, {
+                success: function(currentBox) {
+                    box = currentBox;
+
+                    storageManager.loadCamera(box.get('camera'), true);
+                    storageManager.loadMeshes(box.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+
+                    bubble('已载入分享文件');
+                },
+                error: function(currentBox, error) {
+                    errorCallback();
+                }
+            });
+        },
+        'loadCamera': function loadCamera(key, isNotLocalStorage) {
             var loadDataArray = []; 
             {
-                var load = this.load(key);
+                var load = isNotLocalStorage ? key : this.load(key);
                 if(load) loadDataArray = load.split(';');
             }
             if(loadDataArray.length > 0){
@@ -282,10 +460,10 @@
                 base.controls.update();
             }
         },
-        'loadSidebarSelectedButtons': function loadSidebarSelectedButtons(key) {
+        'loadSidebarSelectedButtons': function loadSidebarSelectedButtons(key, isNotLocalStorage) {
             var loadDataArray = []; 
             {
-                var load = this.load(key);
+                var load = isNotLocalStorage ? key : this.load(key);
                 if(load) loadDataArray = load.split(',');
             }
             if(loadDataArray.length > 0){
@@ -331,6 +509,7 @@
         this.currentActionIndex = -1;
         this.actionArray = [];
         this.isCurrentActionAlive = undefined;
+        this.changed = '0';
     };
 
     ActionRecorder.prototype = {
@@ -411,6 +590,22 @@
             this.actionArray.push(action);
             this.currentActionIndex++;
             this.updateDom();
+            if(isFileOfOthers()) {
+                if(confirm('确定要修改吗？（将会作为新建的文件覆盖本地保存的数据）')){
+                    box = new Box();
+                    storageManager.save(storageManager.storageKeys.boxId,'');
+                    storageManager.save(storageManager.storageKeys.updatedAt,'');
+                    storageManager.save(storageManager.storageKeys.boxName,'');       
+                    storageManager.save(storageManager.storageKeys.localChanges,'1');     
+                    bubble('已根据当前内容新建文件');
+                }
+                else{
+                    this.undo();
+                    return;
+                }
+            }
+            this.changed = 1;
+            updateFileInfo();
         },
         'appendObjectToCurrentAction': function(actionType, mesh) {
             var currentAction = this.actionArray[this.currentActionIndex];
@@ -451,6 +646,12 @@
 
     var Pen = function(){        
         this.drawFlag = false;
+        this.isInsertingFlag = false;
+        this.insertMeshes = undefined;
+        this.insertMeshesBase = undefined;
+        this.insertMeshesNormal = new THREE.Vector3(0, 1, 0);
+        this.insertTimes = 0;
+        this.insertMaterialOverrideFlag = false;
     };
 
     function calculateIntersectResult(event) {
@@ -476,10 +677,157 @@
         }
     }
 
+    function adjustInsertMeshes(insertMeshes) {
+        if(!insertMeshes) return insertMeshes;
+        if(insertMeshes.length < 1) return insertMeshes;
+        var basePosition = new THREE.Vector3( DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0);
+        var minLength = insertMeshes[0].position.length();
+        var minHeight =  insertMeshes[0].position.y;
+        var baseMeshIndex = 0;
+
+        for(var i = 1, l = insertMeshes.length; i < l; i++) {
+            var currentHeight = insertMeshes[i].position.y;
+            if(currentHeight < minHeight) {
+                minHeight = currentHeight;
+                minLength = insertMeshes[i].position.length();
+                baseMeshIndex = i;
+            }
+            else if(currentHeight == minHeight){
+                var currentLength = insertMeshes[i].position.length();
+                if(currentLength < minLength) {
+                    minLength = currentLength;
+                    baseMeshIndex = i;
+                }
+            }
+        }
+
+        var baseMesh = this.insertMeshesBase = insertMeshes[baseMeshIndex];
+        var baseOffset = baseMesh.position.clone().sub(basePosition);
+
+        for(var i = 0, l = insertMeshes.length; i < l; i++) {
+            insertMeshes[i].position.sub(baseOffset);
+        }
+        return insertMeshes;
+    }
+
+    function offsetInsertMeshesBasedOnHelperBox(insertMeshes) {
+        if(!insertMeshes) return insertMeshes;
+        if(insertMeshes.length < 1) return insertMeshes;
+        var basePosition = new THREE.Vector3( DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0, DEFAULT_BOX.width / 2.0);
+        var baseOffset = helperCube.position.clone().sub(basePosition);
+
+        for(var i = 0, l = insertMeshes.length; i < l; i++) {
+            insertMeshes[i].position.sub(baseOffset);
+        }
+    }
+
+    function addInsertHelperToScene(insertMeshes) {
+        this.adjustInsertMeshes(insertMeshes);
+        this.offsetInsertMeshesBasedOnHelperBox(insertMeshes);
+        for(var i = 0, l = insertMeshes.length; i < l; i++) {
+            base.scene.add(insertMeshes[i]);
+        }
+    }
+
+    function updateInsertHelper(insertMeshes, intersects) {
+        if( !intersects ) return;
+        if( intersects.length < 1 ) return;
+        var intersect = intersects[0];
+
+        if(!insertMeshes || !intersect) return insertMeshes;
+        if(insertMeshes.length < 1) return insertMeshes;
+
+        var intersectFaceNormal = intersect.face.normal.clone();
+        var quaternion = new THREE.Quaternion();
+        quaternion.setFromUnitVectors(this.insertMeshesNormal, intersectFaceNormal);
+        var baseOffset = helperCube.position.clone().sub(this.insertMeshesBase.position);
+        var rotationAnchor = helperCube.position.clone();
+        
+        for(var i = 0, l = insertMeshes.length; i < l; i++) {
+            insertMeshes[i].position.add(baseOffset);
+            var rotateTarget = insertMeshes[i].position.clone().sub(rotationAnchor);
+            rotateTarget.applyQuaternion(quaternion);
+            insertMeshes[i].position.copy(rotationAnchor.clone().add(rotateTarget));
+            insertMeshes[i].position.divideScalar( DEFAULT_BOX.width )
+            .floor()
+            .multiplyScalar( DEFAULT_BOX.width )
+            .addScalar( DEFAULT_BOX.width / 2.0 );
+        }
+        this.insertMeshesNormal = intersectFaceNormal;
+    }
+
+    function endInsert() {
+        if(this.insertMeshes && this.insertMeshes.length > 0)
+            for(var i = 0, l = this.insertMeshes.length; i < l; i++) {
+                base.scene.remove(this.insertMeshes[i]);
+            }
+        this.isInsertingFlag = false;
+        this.insertMeshes = undefined;
+        this.insertMeshesBase = undefined;
+        this.insertMeshesNormal = new THREE.Vector3(0, 1, 0);
+        this.insertTimes = 0;
+        this.insertMaterialOverrideFlag = false;
+        bubble('插入结束');
+    }
+
+    function rotateMeshes(angle, axisO, meshesO, baseMeshO) {
+        var meshes = meshesO || this.insertMeshes;
+        var baseMesh = baseMeshO || this.insertMeshesBase;
+        var axis = axisO || this.insertMeshesNormal;
+        var basePosition = baseMesh.position.clone();
+
+        for (var i = meshes.length - 1; i >= 0; i--) {
+            var rotateTarget = meshes[i].position.clone().sub(basePosition);
+            rotateTarget.applyAxisAngle(axis, angle);
+            meshes[i].position.copy(basePosition.clone().add(rotateTarget));
+            meshes[i].position.divideScalar( DEFAULT_BOX.width )
+            .floor()
+            .multiplyScalar( DEFAULT_BOX.width )
+            .addScalar( DEFAULT_BOX.width / 2.0 );
+        }
+    }
+
+    function reflectMeshes(isForward, axisUp, meshesO, baseMeshO) {
+        var meshes = meshesO || this.insertMeshes;
+        var baseMesh = baseMeshO || this.insertMeshesBase;
+        var axis = axisUp || this.insertMeshesNormal;
+        axis = axis.clone();
+        var basePosition = baseMesh.position.clone();
+        if(isForward) {
+            var t = axis.z;
+            axis.z = axis.y;
+            axis.y = axis.x;
+            axis.x = t;
+        }
+        else{
+            var t = axis.x;
+            axis.x = axis.y;
+            axis.y = axis.z;
+            axis.z = t;
+        }
+
+        for (var i = meshes.length - 1; i >= 0; i--) {
+            var rotateTarget = meshes[i].position.clone().sub(basePosition);
+            rotateTarget.reflect(axis);
+            meshes[i].position.copy(basePosition.clone().add(rotateTarget));
+            meshes[i].position.divideScalar( DEFAULT_BOX.width )
+            .floor()
+            .multiplyScalar( DEFAULT_BOX.width )
+            .addScalar( DEFAULT_BOX.width / 2.0 );
+        }
+    }
+
     Pen.prototype = {
         'calculateIntersectResult': calculateIntersectResult,
         'setMeshPositionToFitTheGrid': setMeshPositionToFitTheGrid,
         'updateHelperCube': updateHelperCube,
+        'adjustInsertMeshes': adjustInsertMeshes,
+        'offsetInsertMeshesBasedOnHelperBox': offsetInsertMeshesBasedOnHelperBox,
+        'addInsertHelperToScene': addInsertHelperToScene,
+        'updateInsertHelper': updateInsertHelper,
+        'endInsert': endInsert,
+        'rotateMeshes': rotateMeshes,
+        'reflectMeshes': reflectMeshes,
         'draw': function (geo, material, xyz, intersect, mesh, notVisibleInTheScene){
 
             var geoIndex,currentBoxGeometryParent,materialIndex,currentBoxMaterialParent;
@@ -526,14 +874,68 @@
         'reverseOperationMap': {
             'draw': 'erase',
             'erase': 'draw'
+        },
+        'deleteMesh': function(deleteMeshesO) {
+            var deleteMeshes = deleteMeshesO || this.insertMeshes;
+            var deleted = [];
+            for(var i = 0, l = deleteMeshes.length; i < l; i++) {
+
+                for(var j = 0, dl = cubeMeshes.length; j < dl; j++) {
+                    var mesh = cubeMeshes[j].meshObject;
+                    if(deleteMeshes[i].position.equals(mesh.position)) {
+                        deleted.push(this.erase(mesh));
+                        break;
+                    }
+                }
+
+            }
+            return deleted;
+
+        },
+        'insert': function(insertMeshesO) {
+           
+           var insertMeshes = insertMeshesO || this.insertMeshes;
+           var inserted = [];
+           for(var i = 0, l = insertMeshes.length; i < l; i++) {
+                if(this.insertMaterialOverrideFlag) {
+                    var mesh = this.draw(currentBoxGeometryParentIndex, 
+                        currentBoxMaterialParentIndex, 
+                        [ insertMeshes[i].position.x, insertMeshes[i].position.y, insertMeshes[i].position.z ]
+                    );
+                    inserted.push(mesh);
+                }
+                else{
+                    var geo = 0;
+                    for(var j = 0, lg = geometries.length; j < lg; j++) {
+                        if(geometries[j].data === insertMeshes[i].geometry) {
+                            geo = j;
+                            break;
+                        }
+                    }
+                    var mat = 0;
+                    for(var k = 0, lm = materials.length; k < lm; k++) {
+                        if(materials[k].data === insertMeshes[i].material) {
+                            mat = k;
+                            break;
+                        }
+                    }
+                    var mesh = this.draw(
+                        geo, 
+                        mat, 
+                        [insertMeshes[i].position.x, insertMeshes[i].position.y, insertMeshes[i].position.z],
+                        undefined,
+                        insertMeshes[i].clone()
+                    );
+                    inserted.push(mesh);
+                }
+           }
+           return inserted;
+            
         }
     };
 
 
     //constants
-
-
-
     var DRAW_VOXEL_SAME_CUBE_DEFINITION = 3;
     THREE.ImageUtils.crossOrigin = 'Anonymous';
     var base;
@@ -550,7 +952,7 @@
             'directionalLightDensity': 0.8,
             'basePlaneSegments': 2,
             'basePlaneWidth': 50000.0 * boxScale,
-            'basePlaneTextureRepeat': 200,
+            'basePlaneTextureRepeat': 80,
             'fogNear': 8000 * boxScale,
             'fogFar': 25000 * boxScale,
             'sphereRadius': 25000 * boxScale
@@ -572,7 +974,7 @@
 
     var autoSaveInterval = 120*1000;
     var autoSaveIntervalHandler;
-    var defaultLoadType = VoxelPaintStorageManager.prototype.LOAD_TYPE.async;
+    var defaultLoadType = StorageManager.prototype.LOAD_TYPE.async;
     var defaultTexturesButtonWidth = 50;
 
     var defaultMaterial = new THREE.MeshLambertMaterial( { color: 0x090909 } );
@@ -593,7 +995,7 @@
         }
     ];
 
-    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width, DEFAULT_BOX.width, DEFAULT_BOX.width, 1, 1, 1  );
+    var defaultBoxGeometry = new THREE.BoxGeometry( DEFAULT_BOX.width+1, DEFAULT_BOX.width+1, DEFAULT_BOX.width+1, 1, 1, 1  );
     var geometries = [
         {
             'name': 'default',
@@ -613,10 +1015,30 @@
         'toolsRadius': 0,
         'textures': 0,
         'texturesType': 0,
+        'toggleShadow': function() {
+            directionalLight.castShadow = !directionalLight.castShadow;
+            base.renderer.shadowMapEnabled = !base.renderer.shadowMapEnabled;
+            if(directionalLight.castShadow) bubble('阴影打开');
+            else bubble('阴影关闭');
+        },
         'toggleAux': function(){
             (sidebarParams['toolsType'] === 1) || (helperCube.visible = ! helperCube.visible);
             // gridHelper.visible = ! gridHelper.visible;
             auxToggle = ! auxToggle;
+            if(auxToggle) bubble('辅助物体打开');
+            else bubble('辅助物体关闭');
+        },
+        'toggleFPS': function(){            
+            if(base.stats.domElement.style.display == 'none') {
+                base.stats.domElement.style.display = 'block';
+                base.stats.begin();
+                bubble('FPS监测打开');
+            }
+            else {
+                base.stats.domElement.style.display = 'none';
+                base.stats.end();
+                bubble('FPS监测关闭');
+            }
         },
         'capture': function(){
             downloadCanvasImage( base.renderer.domElement, 'capture.png' );
@@ -638,8 +1060,274 @@
         },
         'redo': function(){
             actionRecorder.redo();   
-        }         
+        },
+        'signInOpener': function(){
+            $('#signInEmail').val('');
+            $('#signInUsername').val('');
+            $('#signInPassword').val('');
+            $('#signInError').parent().hide();
+            $('#signInModal').modal('show');            
+            $('#signInEmail').focus();
+
+        },     
+        'loginOpener': function(){
+            $('#loginUsername').val('');
+            $('#loginPassword').val('');
+            $('#loginError').parent().hide();
+            $('#loginModal').modal('show');
+            $('#loginUsername').focus();
+        },   
+        'logout': function(){
+            if (AV.User.current()) {
+                AV.User.logOut();
+            }
+            loginTrigger(false);
+            bubble('已登出');
+        },
+        'save': function() {
+
+            if(AV.User.current()){
+                if (actionRecorder.changed === '0' && !box.id){                    
+                            bubble('文件未做任何修改，将本地保存');
+                }
+                else{
+                    var meshSave = '';
+                    meshSave += DEFAULT_BOX.width + ':';
+                    for (var i = 0, l = cubeMeshes.length; i < l; i++) {
+                        meshSave += cubeMeshes[i].geo.id.replace('geo','') + ',';
+                        meshSave += cubeMeshes[i].material.id.replace('texture','') + ',';
+                        meshSave += cubeMeshes[i].meshObject.position.x + ',';
+                        meshSave += cubeMeshes[i].meshObject.position.y + ',';
+                        meshSave += cubeMeshes[i].meshObject.position.z + ';';
+                    }
+
+                    var cameraSave = '';
+                    cameraSave += (base.controls.target.x + ',' + base.controls.target.y + ',' + base.controls.target.z + ';');
+                    cameraSave += (base.controls.object.position.x + ',' + base.controls.object.position.y + ',' + base.controls.object.position.z + ';');
+      
+                    box.set('camera', cameraSave || '0,0,0;1000,500,1000');
+                    box.set('meshes', meshSave || '');
+                    if(!box.id){
+                        var name =  prompt('请输入文件名', box.get('name') || storageManager.load(storageManager.storageKeys.boxName) || '未命名');
+                        box.set('name', name || '未命名');
+                        box.set('user', AV.User.current());
+                        box.setACL(new AV.ACL(AV.User.current()));
+                    }
+                    box.save({
+                        success: function(box) {
+                            storageManager.save(storageManager.storageKeys.updatedAt, box.updatedAt);
+                            storageManager.save(storageManager.storageKeys.boxId, box.id);
+                            storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+                            bubble('已保存至云端');
+                        },
+                        error: function(box, error) {
+                            storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+
+                            actionRecorder.changed = '1';
+                            storageManager.save(storageManager.storageKeys.localChanges, '1');
+                            bubble('云端保存失败，将会保存在本地' + error.message);
+                        }
+                    });
+                }
+                actionRecorder.changed = '0';
+
+                storageManager.save(storageManager.storageKeys.localChanges, '0');
+                storageManager.save(storageManager.storageKeys.camera);
+                storageManager.save(storageManager.storageKeys.sidebar);
+                storageManager.save();
+            }
+            else{
+                storageManager.save(storageManager.storageKeys.camera);
+                storageManager.save(storageManager.storageKeys.sidebar);
+                storageManager.save();
+                var info = '已保存在本地';
+                if(!loginAlertFlag){
+                    info += '，登录后可向云端保存多个文件';
+                    loginAlertFlag = true;
+                }
+                bubble(info);
+            }
+        },
+        'newFile': function() {
+
+            if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
+
+            }
+            else{
+                if(confirm('是否保存当前文件？')) {
+                    sidebarParams.save();
+                }
+            }
+
+            pen.endInsert();
+            sidebarParams.clearAll();
+            actionRecorder = new ActionRecorder();
+            actionRecorder.updateDom();
+            box = new Box();
+            storageManager.save(storageManager.storageKeys.localChanges, '0');
+            storageManager.save(storageManager.storageKeys.camera);
+            storageManager.save(storageManager.storageKeys.sidebar);
+            storageManager.save(storageManager.storageKeys.updatedAt,'');
+            storageManager.save(storageManager.storageKeys.boxId,'');
+            storageManager.save(storageManager.storageKeys.boxName,''); 
+            storageManager.save();
+            bubble('新建'); 
+        },
+        'open': function() {
+            document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onDeleteItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
+
+            document.getElementById('openIt').addEventListener('click', onOpenItClick, false);
+            var query = new AV.Query(Box);
+            query.select('name');
+            query.equalTo('user', AV.User.current());
+
+            var query2 = new AV.Query(Keep);
+            query2.select('name');
+            query2.select('box.name', 'box.user.username');
+            query2.include('box.name', 'box.user.username');
+            query2.equalTo('user', AV.User.current());
+
+            selectModalInit(query.find(), query2.find());
+
+            $('#openModal .modal-body #boxTitle').text('我的文件');
+            $('#openModal .modal-body #keepTitle').text('我的收藏');
+        },
+        'share': function() {
+            var query = new AV.Query(Box);
+            query.select('name');
+            query.equalTo('user', AV.User.current());
+            selectModalInit(query.find(), undefined, 'shareModal', ['boxToShare']);
+        },
+        'delete': function() {
+            document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onDeleteItClick, false);
+            document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
+
+            document.getElementById('openIt').addEventListener('click', onDeleteItClick, false);
+            var query = new AV.Query(Box);
+            query.select('name');
+            query.equalTo('user', AV.User.current());
+
+            var query2 = new AV.Query(Keep);
+            query2.select('name');
+            query2.select('box.name', 'box.user.username');
+            query2.include('box.name', 'box.user.username');
+            query2.equalTo('user', AV.User.current());
+
+            selectModalInit(query.find(), query2.find(), undefined, undefined, true);
+
+            $('#openModal .modal-body #boxTitle').text('我的文件');
+            $('#openModal .modal-body #keepTitle').text('我的收藏');
+        },
+        'keep': function() {
+            if( box && box.id ) {
+                var keepingBox = AV.Object.createWithoutData('Box', box.id);
+                var query = new AV.Query(Keep);
+                query.equalTo('user', AV.User.current());
+                query.equalTo('box', keepingBox);
+                query.count().then(
+                    function(count) {
+                        if(count > 0) {
+                            bubble('您已收藏过此文件');
+                        }
+                        else{
+                            var keep = new Keep();
+                            keep.set('box', keepingBox);
+                            keep.set('name', prompt('收藏名称'));
+                            keep.set('user', AV.User.current());
+                            keep.setACL(new AV.ACL(AV.User.current()));
+                            keep.save().then(
+                                function(){                                    
+                                    bubble('已收藏');
+                                },
+                                function(){
+                                    bubble('收藏失败');
+                                }
+                            );
+                        }
+                    },
+                    function(error) {
+                        bubble('收藏失败');
+                    }
+                );
+
+            }
+            else {
+                bubble('只能收藏已保存的文件');
+            }
+        },
+        'insert': function() {
+            if(pen.isInsertingFlag){
+                pen.endInsert();
+            }
+            else{
+              document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
+              document.getElementById('openIt').removeEventListener('click', onDeleteItClick, false);
+              document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
+
+              document.getElementById('openIt').addEventListener('click', onInsertItClick, false);
+              var query = new AV.Query(Box);
+              query.select('name');
+              query.equalTo('user', AV.User.current());
+
+              var query2 = new AV.Query(Keep);
+              query2.select('name');
+              query2.select('box.name', 'box.user.username');
+              query2.include('box.name', 'box.user.username');
+              query2.equalTo('user', AV.User.current());
+
+              selectModalInit(query.find(), query2.find());
+
+              $('#openModal .modal-body #boxTitle').text('我的文件');
+              $('#openModal .modal-body #keepTitle').text('我的收藏');  
+            }
+        }
     };
+
+    function selectModalInit(myPromise, keptPromise, modalIdO, bodyIdsO, isKeepIdUsed) {
+            var modalId = modalIdO || 'openModal';
+            var bodyIds = bodyIdsO || ['myBox', 'myKeep'];
+
+            if(myPromise) 
+            myPromise.then(
+                function(results){
+                    $('#'+modalId+' .modal-body #'+bodyIds[0]).html('');
+                    for(var i = 0, l = results.length;i < l; i++) {
+                        $('#'+modalId+' .modal-body #'+bodyIds[0]).append(
+                          '<label class="btn btn-primary">'
+                          + '  <input type="radio" name="boxData" id="myBoxData'+i+'" value="'+results[i].id+'" autocomplete="off">'
+                          + '  <label id="myBoxDataLabel'+i+'"></label>'
+                          + '</label>'
+                        );
+                        $('#'+modalId+' .modal-body #myBoxDataLabel'+i).text(results[i].get('name'));
+                    }
+                    if(results.length < 1) $('#openModal .modal-body #boxTitle').hide();
+                    else $('#openModal .modal-body #boxTitle').show();
+                }
+            );
+           if(keptPromise)
+           keptPromise.then(
+                function(results){
+                    $('#'+modalId+' .modal-body #'+bodyIds[1]).html('');
+                    for(var i = 0, l = results.length;i < l; i++) {
+                        $('#'+modalId+' .modal-body #'+bodyIds[1]).append(
+                          '<label class="btn btn-primary">'
+                          + '  <input type="radio" name="boxData" id="keepBoxData'+i+'" value="'+(isKeepIdUsed ? results[i].id : (results[i].get('box') ? results[i].get('box').id : '-1'))+'" autocomplete="off">'
+                          + '  <label id="keepBoxDataLabel'+i+'"></label>'
+                          + '</label>'
+                        );
+                        $('#'+modalId+' .modal-body #keepBoxDataLabel'+i).text(results[i].get('name')+ (results[i].get('box') ? '('+results[i].get('box').get('user').get('username')+'/'+results[i].get('box').get('name')+')' : ''));
+                    }
+                    if(results.length < 1) $('#openModal .modal-body #keepTitle').hide();
+                    else $('#openModal .modal-body #keepTitle').show();
+                }
+            );
+
+            $('#'+modalId+'').modal('show');
+
+    }
 
     var currentBoxMaterialParentIndex = 0;
     var currentBoxMaterialParent = materials[0];
@@ -660,7 +1348,7 @@
     var fog;
 
     var voxelAnimationManager = new VoxelAnimationManager();
-    var voxelPaintStorageManager = new VoxelPaintStorageManager(false);
+    var storageManager = new StorageManager(false);
     var actionRecorder =new ActionRecorder();
     var pen = new Pen();
 
@@ -677,19 +1365,27 @@
             LIGHT_PARAMS[base.renderType].basePlaneSegments, 
             LIGHT_PARAMS[base.renderType].basePlaneSegments
         );
-        basePlaneGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
+        // basePlaneGeometry.applyMatrix( new THREE.Matrix4().lookAt(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0) ) );
+        var m4 = new THREE.Matrix4().makeRotationX( -Math.PI / 2 );
+        for (var i = m4.elements.length - 1; i >= 0; i--) {
+            m4.elements[i] = Math.floor(m4.elements[i]);
+        };
+        basePlaneGeometry.applyMatrix( m4 );
+        // basePlaneGeometry.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0));
+        // basePlaneGeometry.lookAt(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0));
         var basePlaneTexture = THREE.ImageUtils.loadTexture('texture/grasslight-big.jpg');
-        // var skyTexture = THREE.ImageUtils.loadTexture('texture/sky.jpg');
+        var skyTexture = THREE.ImageUtils.loadTexture('texture/sky.jpg');
         basePlaneTexture.wrapT = basePlaneTexture.wrapS = THREE.RepeatWrapping;
         basePlaneTexture.repeat.set(
             LIGHT_PARAMS[base.renderType].basePlaneTextureRepeat, 
             LIGHT_PARAMS[base.renderType].basePlaneTextureRepeat
         );
-        basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33, map: basePlaneTexture, bumpMap: basePlaneTexture, emissive: 0xffffff} );        
+        basePlaneMaterial = new THREE.MeshPhongMaterial( { ambient: 0xffffff, color: 0xddcc33, map: basePlaneTexture, bumpMap: basePlaneTexture, bumpScale: 3, specular: 0x335533, shininess: 15, emissive: 0xffffff} );        
         // basePlaneMaterial = new THREE.MeshLambertMaterial( {color: 0x33cc33} );        
         basePlaneMesh = new THREE.Mesh( basePlaneGeometry, basePlaneMaterial );
         basePlaneMesh.receiveShadow = true;
         basePlaneMesh.material.side = THREE.DoubleSide;
+
         // basePlaneMesh.visible = false;
         base.scene.add( basePlaneMesh );
         allIntersectableObjects.push( basePlaneMesh );
@@ -709,10 +1405,10 @@
         directionalLight.shadowCameraLeft = -1024 * boxScale;
         directionalLight.shadowCameraBottom = 1024 * boxScale;
         directionalLight.shadowCameraRight = 1024 * boxScale;
-        directionalLight.shadowBias = .000020;
+        directionalLight.shadowBias = .000010;
         directionalLight.shadowDarkness = 0.4;
-        directionalLight.shadowMapWidth = 2048 * boxScale;
-        directionalLight.shadowMapHeight = 2048 * boxScale;
+        directionalLight.shadowMapWidth = 1024 * boxScale;
+        directionalLight.shadowMapHeight = 1024 * boxScale;
 
         // directionalLight.shadowCameraVisible = true;
         // directionalLight.shadowCascade = true;
@@ -730,23 +1426,24 @@
         base.scene.add( hemisphereLight );
 
         // SKYDOME
-        var uniforms = {
-            topColor:    { type: "c", value: new THREE.Color( 0x3366ff ) },
-            bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
-            offset:      { type: "f", value: 200 },
-            exponent:    { type: "f", value: .85 }
-        }
-        var tc = new THREE.Color();
-        uniforms.topColor.value.copy( tc.setHSL( 0.6, 2, 0.5 ));
+        // var uniforms = {
+        //     topColor:    { type: "c", value: new THREE.Color( 0x3366ff ) },
+        //     bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
+        //     offset:      { type: "f", value: 200 },
+        //     exponent:    { type: "f", value: .85 }
+        // }
+        // var tc = new THREE.Color();
+        // uniforms.topColor.value.copy( tc.setHSL( 0.6, 2, 0.5 ));
 
-        var skyGeo = new THREE.SphereGeometry( LIGHT_PARAMS[base.renderType].sphereRadius , 32, 15 );
-        var skyMat = new THREE.ShaderMaterial( {
-            uniforms: uniforms,
-            vertexShader: vertexShader,
-            fragmentShader: fragmentShader,
-            side: THREE.BackSide
-        } );
-
+        var skyGeo = new THREE.SphereGeometry( LIGHT_PARAMS[base.renderType].sphereRadius , 32, 15, 0, Math.PI * 2, 0, Math.PI / 2);
+        // var skyMat = new THREE.ShaderMaterial( {
+        //     uniforms: uniforms,
+        //     vertexShader: vertexShader,
+        //     fragmentShader: fragmentShader,
+        //     side: THREE.BackSide,
+        //     map: skyTexture
+        // } );
+        var skyMat  = new THREE.MeshLambertMaterial({color: 0x3366ff, map: skyTexture, side: THREE.BackSide, emissive: 0xffffff });
         var sky = new THREE.Mesh( skyGeo, skyMat );
         base.scene.add( sky );
 
@@ -764,7 +1461,7 @@
 
         //fog
         // fog = new THREE.Fog(0xeeffee, LIGHT_PARAMS[base.renderType].fogNear, LIGHT_PARAMS[base.renderType].fogFar);
-        fog = new THREE.FogExp2( 0xffffff, 0.000055 );
+        fog = new THREE.FogExp2( 0xffffff, 0.000053 );
         base.scene.fog = fog;
 
         base.controls.settings.boxScale = boxScale;
@@ -784,13 +1481,13 @@
         base.renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
         document.addEventListener( 'keydown', onDocumentKeyDown, false );
         document.addEventListener( 'keyup', onDocumentKeyUp, false );
-        autoSaveIntervalHandler = setInterval(onWindowBeforeUnload, autoSaveInterval);
+        autoSaveIntervalHandler = setInterval(autoSave, autoSaveInterval);
     }
 
 
 
 
-    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving, isMouseMoving){
+    function drawVoxel(intersectResult, isDrawOnSameVoxel, isEraseWhileMoving, isMouseMoving, ctrlKey){
         var intersects = intersectResult || calculateIntersectResult(event);
         if( intersects.length > 0 ){
             var intersect = intersects[0];
@@ -806,44 +1503,116 @@
                     }
                 }
             }
+
             //add a solid cube
             if(currentToolsType === 0){
-                if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
-                   
+                if(pen.isInsertingFlag){
+                    // if(pen.insertTimes > 0 && !ctrlKey) {
+                    //         pen.endInsert();
+                    //         return;
+                    // } 
+                    if(isMouseMoving) return;
+                    var deletedMeshes = pen.deleteMesh();
+                    if(deletedMeshes && deletedMeshes.length > 0) actionRecorder.addAction('erase', deletedMeshes);
+                    var insertedMeshes = pen.insert();
+                    actionRecorder.addAction('draw', insertedMeshes);
+                    pen.insertTimes++;
+                    // if(!ctrlKey) {
+                    //     pen.endInsert();
+                    // }
+                }
+                else{
+                    if((sameVoxelFlag === true && isDrawOnSameVoxel === false) || (sameVoxelFlag === false && isDrawOnSameVoxel === true)) return;
+                       
                     var mesh = pen.draw(currentBoxGeometryParentIndex, currentBoxMaterialParentIndex, undefined, intersect);
                     if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('draw', mesh);
                     else actionRecorder.addAction('draw', mesh);      
                     //instant render   grant next draw right              
                     base.renderer.render( base.scene, base.camera );
-                return;
+                    return;
+                }
             }
 
             //remove cube
             if(currentToolsType === 1 && isEraseWhileMoving){
-                if( intersect.object !== basePlaneMesh ) {
-                    var mesh = pen.erase(intersect.object);
-                    if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('erase', mesh);
-                    else actionRecorder.addAction('erase', mesh);
-                    return;
+                if(pen.isInsertingFlag){
+                    // if(pen.insertTimes > 0 && !ctrlKey) {
+                    //         pen.endInsert();
+                    //         return;
+                    // } 
+                    if(isMouseMoving) return;
+                    var deletedMeshes = pen.deleteMesh();
+                    actionRecorder.addAction('erase', deletedMeshes);
+                    pen.insertTimes++;
+                    // if(!ctrlKey) {
+                    //     pen.endInsert();
+                    // }
+                }
+                else{
+                    if( intersect.object !== basePlaneMesh ) {
+                        var mesh = pen.erase(intersect.object);
+                        if(isMouseMoving) actionRecorder.appendObjectToCurrentAction('erase', mesh);
+                        else actionRecorder.addAction('erase', mesh);
+                        return;
+                    }
                 }
             }
         }
     }
 
+    function autoSave(){
+      if(isFileOfOthers()){}
+      else {
+          storageManager.save(storageManager.storageKeys.localChanges, actionRecorder.changed);
+          storageManager.save(storageManager.storageKeys.camera);
+          storageManager.save(storageManager.storageKeys.sidebar);
+          storageManager.save();
+
+          // storageManager.save(storageManager.storageKeys.boxName, box.get('name') || '');
+          // storageManager.save(storageManager.storageKeys.boxId, box.id || '');
+          // storageManager.save(storageManager.storageKeys.updatedAt, box.updatedAt || '');
+      }
+    }
+
     //listeners
     function onWindowBeforeUnload(event) {
-        if(reloadFlag === 0){
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-            voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-            voxelPaintStorageManager.save();
+        if(reloadFlag === 0){            
+            if(isFileOfOthers()){}
+            else if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id ))) || !AV.User.current) {
+                storageManager.save(storageManager.storageKeys.camera);
+                storageManager.save(storageManager.storageKeys.sidebar);
+                storageManager.save();
+            }
+            else{
+                //give up in saving data to cloud
+                storageManager.save(storageManager.storageKeys.localChanges, actionRecorder.changed);
+                storageManager.save(storageManager.storageKeys.camera);
+                storageManager.save(storageManager.storageKeys.sidebar);
+                storageManager.save();
+                // sidebarParams.save();
+            }
         }
     }
 
     function onWindowReload(event) {
-        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.camera);
-        voxelPaintStorageManager.save(voxelPaintStorageManager.storageKeys.sidebar);
-        voxelPaintStorageManager.save();
         reloadFlag = 1;
+        if(isFileOfOthers()){}
+        else if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
+            storageManager.save(storageManager.storageKeys.camera);
+            storageManager.save(storageManager.storageKeys.sidebar);
+            storageManager.save();
+        }
+        else{
+                if(confirm('是否保存当前文件？')) {
+                    sidebarParams.save();
+                }
+                else{
+                    storageManager.save(storageManager.storageKeys.localChanges, actionRecorder.changed);
+                    storageManager.save(storageManager.storageKeys.camera);
+                    storageManager.save(storageManager.storageKeys.sidebar);
+                    storageManager.save();
+                }
+        }
     }
 
     function onWindowResize(event) {
@@ -890,9 +1659,11 @@
             }
             else {
                 if(!helperCube.visible && auxToggle) helperCube.visible = true;
-                intersects = calculateIntersectResult(event);
-                updateHelperCube(intersects);
             }
+            intersects = calculateIntersectResult(event);
+            updateHelperCube(intersects);
+            if(pen.isInsertingFlag) pen.updateInsertHelper(pen.insertMeshes, intersects);
+            // console.log(intersects && intersects[0]);
         }
         
     }
@@ -918,8 +1689,11 @@
                 mouseState[0] = 1;
                 // onWindowResize();
                 var intersects = calculateIntersectResult(event);
-                drawVoxel(intersects, undefined, true, false);
-                if(sidebarParams['toolsType'] === 0) updateHelperCube(intersects);
+                drawVoxel(intersects, undefined, true, false, event.ctrlKey);
+                // if(sidebarParams['toolsType'] === 0) {
+                    updateHelperCube(intersects);
+                    if(pen.isInsertingFlag) pen.updateInsertHelper(pen.insertMeshes, intersects);
+                // }
                 break;
             case 1:
                 mouseState[1] = 1;
@@ -987,7 +1761,7 @@
             }
         }
         else if(this.type === 'button' || this.nodeName.toLowerCase() === 'button'){
-            sidebarParams[this.id]();
+            if(sidebarParams[this.id]) sidebarParams[this.id]();
         }
     }
 
@@ -1012,12 +1786,34 @@
         switch(event.keyCode){
             //c
             case 67:
-                iterateTextures();
+                if(!pen.isInsertingFlag){
+                    iterateTextures();
+                }
+                else{
+                    pen.rotateMeshes(-Math.PI / 2);
+                }
                 break;
             //x
             case 88:
-                iterateTextures(true);
+                if(!pen.isInsertingFlag){
+                    iterateTextures(true);
+                }
+                else{
+                    pen.rotateMeshes(Math.PI / 2);
+                }
                 break;
+            //f
+            case 70:
+                if(pen.isInsertingFlag){
+                    pen.reflectMeshes(true);
+                }
+                break;
+            //g
+            case 71:
+                if(pen.isInsertingFlag){
+                    pen.reflectMeshes(false);
+                }
+                break;                
         }
     }
 
@@ -1026,11 +1822,20 @@
         switch(event.keyCode){
             //shift
             case 16:
-                if(sidebarParams['toolsType'] === 0){
-                    document.getElementById('eraser').parentElement.click();
+                if(!pen.isInsertingFlag){
+                    if(sidebarParams['toolsType'] === 0){
+                        document.getElementById('eraser').parentElement.click();
+                        bubble('已切换至擦除');
+                    }
+                    else if(sidebarParams['toolsType'] === 1){
+                        document.getElementById('cube').parentElement.click();
+                        bubble('已切换至画笔');
+                    }
                 }
-                else if(sidebarParams['toolsType'] === 1){
-                    document.getElementById('cube').parentElement.click();
+                else{
+                    pen.insertMaterialOverrideFlag = !pen.insertMaterialOverrideFlag;
+                    if(pen.insertMaterialOverrideFlag) bubble('插入方块的材质将使用当前选择材质');
+                    else bubble('插入方块的材质将使用原文件中的材质');
                 }
                 break;
             //z
@@ -1040,6 +1845,10 @@
             //y
             case 89:
                 if(event.ctrlKey) actionRecorder.redo();
+                break;
+            //ESC
+            case 27:
+                if(pen.isInsertingFlag) pen.endInsert();
                 break;
         }
     }
@@ -1072,6 +1881,31 @@
                         {
                             'title': ' -',
                             'id': 'minSidebar'
+                        }
+                    ] 
+                },   
+                {                    
+                    'UIType': 'buttonGroup',
+                    'id': 'accountControl',
+                    'name': 'accountControl',
+                    'buttonType': 'button',
+                    'appendClass': 'btn-group-accountbtn',
+                    'buttons':[
+                        {
+                            'title': '注册',
+                            'id': 'signInOpener'
+                        },
+                        {
+                            'title': '登录',
+                            'id': 'loginOpener'
+                        },
+                        {
+                            'title': '登出',
+                            'id': 'logout'
+                        },
+                        {
+                            'title': '登录后方可保存数据到云端',
+                            'id': 'loginMessage'
                         }
                     ] 
                 },
@@ -1114,6 +1948,23 @@
                                             'id': 'eraser'
                                         }
                                     ]    
+                                },                                
+                                {
+                                    'UIType': 'buttonGroup',
+                                    'id': 'buttonGroup3',
+                                    'name': 'actions',
+                                    'buttonType': 'button',
+                                    'appendClass': 'btn-group-toolbtn',
+                                    'buttons':[
+                                        {
+                                            'title': '撤销',
+                                            'id': 'undo'
+                                        },
+                                        {
+                                            'title': '重做',
+                                            'id': 'redo'
+                                        }
+                                    ]    
                                 }
                                 // {
                                 //     'UIType': 'buttonGroup',
@@ -1142,54 +1993,114 @@
                 },
                 {
                     'UIType': 'panel',
+                    'title': '文件',
+                    'name': 'files',
+                    'id': 'panelFiles',
+                    'children':[
+                        {
+                            'UIType': 'buttonGroup',
+                            'id': 'currentFileNameGroup',
+                            'name': 'cfn',
+                            'buttonType': 'button',
+                            'appendClass': 'btn-group-cfnbtn',
+                            'buttons':[
+                                {
+                                    'title': '',
+                                    'id': 'currentFileName'
+                                }
+                            ]                                
+                        },
+                        {
+                            'UIType': 'buttonGroup',
+                            'id': 'currentFileStateGroup',
+                            'name': 'cfs',
+                            'buttonType': 'button',
+                            'appendClass': 'btn-group-cfsbtn',
+                            'buttons':[
+                                {
+                                    'title': '',
+                                    'id': 'currentFileState'
+                                }
+                            ]                                
+                        },
+                        {
+                            'UIType': 'buttonGroup',
+                            'id': 'buttonGroupADM',
+                            'name': 'adm',
+                            'buttonType': 'button',
+                            'appendClass': 'btn-group-toolbtn',
+                            'buttons':[
+                                {
+                                    'title': '新建',
+                                    'id': 'newFile'
+                                },
+                                {
+                                    'title': '保存',
+                                    'id': 'save'
+                                },
+                                {
+                                    'title': '收藏',
+                                    'id': 'keep'
+                                },
+                                {
+                                    'title': '打开...',
+                                    'id': 'open'
+                                },
+                                {
+                                    'title': '插入...',
+                                    'id': 'insert'
+                                },
+                                {
+                                    'title': '删除...',
+                                    'id': 'delete'
+                                },
+                                {
+                                    'title': '共享...',
+                                    'id': 'share'
+                                }
+                            ]                                
+                        }
+                    ]
+                },
+                {
+                    'UIType': 'panel',
                     'title': '其他功能',
                     'name': 'tools',
                     'id': 'panel3',
                     'children':[
-                        {
-                            'UIType': 'buttonGroup',
-                            'title': '',
-                            'id': 'buttonGroup3',
-                            'name': 'aux',
-                            'buttonType': 'button',
-                            'appendClass': 'btn-group-toolbtn',
-                            'buttons': [
-                                {
-                                    'title': '辅助物体开关',
-                                    'id': 'toggleAux',
-                                    'checked': true 
-                                },
-                                {
-                                    'title': '截图',
-                                    'id': 'capture'
-                                },
-                                {
-                                    'title': '清空',
-                                    'id': 'clearAll'
-                                }
-                            ]
-                        },
                         {
                             'UIType': 'Toolbar',
                             'id': 'toolbar1',
                             'children':[
                                 {
                                     'UIType': 'buttonGroup',
+                                    'title': '',
                                     'id': 'buttonGroup3',
-                                    'name': 'actions',
+                                    'name': 'aux',
                                     'buttonType': 'button',
                                     'appendClass': 'btn-group-toolbtn',
-                                    'buttons':[
+                                    'buttons': [
                                         {
-                                            'title': '撤销',
-                                            'id': 'undo',
-                                            'checked': true
+                                            'title': '阴影开关',
+                                            'id': 'toggleShadow'
                                         },
                                         {
-                                            'title': '重做',
-                                            'id': 'redo'
+                                            'title': 'FPS开关',
+                                            'id': 'toggleFPS'
+                                        },
+                                        {
+                                            'title': '辅助物体开关',
+                                            'id': 'toggleAux'
+                                        },
+                                        {
+                                            'title': '截图',
+                                            'id': 'capture'
+                                        },
+                                        {
+                                            'title': '清空',
+                                            'id': 'clearAll'
                                         }
-                                    ]    
+                                    ]
                                 }
                             ]
                         }
@@ -1351,11 +2262,347 @@
             'height': defaultTexturesButtonWidth
         }).addEventListener('click', onSidebarBtnClick, false);
     }
+
+    //file command callbacks
+     function onLoginClick() {
+        var username = $('#loginUsername').val();
+        var password = $('#loginPassword').val();
+        var loginBtn = $('#login');
+
+        loginBtn.attr('disabled', 'disabled');
+
+        if (AV.User.current()) {
+            AV.User.logOut();
+        }
+        AV.User.logIn(username, password, {
+            success:function(user) {
+                loginTrigger(true);
+                loginBtn.removeAttr('disabled');
+                $('#loginModal').modal('hide');
+                bubble('你好' + AV.User.current().escape('username'));
+                $('#loginUsername').val('');
+                $('#loginPassword').val('');
+                storageManager.loadRemote();
+            },
+            error: function(user, error) {
+                $('#loginError').html(error.message);
+                $('#loginError').parent().show();
+                loginBtn.removeAttr('disabled');
+            }
+        });
+    }
+
+    $('#loginUsername').on('keyup', function(event){
+        if(event.which===13) document.getElementById('login').click();
+    });
+    $('#loginPassword').on('keyup', function(event){
+        if(event.which===13) document.getElementById('login').click();
+    });
+
+   function onSignInClick() {
+        var email = $('#signInEmail').val();
+        var username = $('#signInUsername').val();
+        var password = $('#signInPassword').val();
+        var signInBtn = $('#signIn');
+
+        signInBtn.attr('disabled', 'disabled');
+
+        if (AV.User.current()) {
+            AV.User.logOut();
+        }
+        AV.User.signUp(username, password, { ACL: new AV.ACL(), email: email }, {
+            success:function(user) {
+                loginTrigger(true);
+                signInBtn.removeAttr('disabled');
+                $('#signInModal').modal('hide');
+                bubble('你好' + AV.User.current().escape('username'));
+                $('#signInEmail').val('');
+                $('#signInUsername').val('');
+                $('#signInPassword').val('');
+                storageManager.loadRemote();
+            },
+            error: function(user, error) {
+                $('#signInError').html(error.message);
+                $('#signInError').parent().show();
+                signInBtn.removeAttr('disabled');
+            }
+        });
+    }
+
+    function onOpenItClick() {
+        var oi = $('#openModal input[type=radio]:checked').val();
+        if(oi === '-1') { $('#openModal').modal('hide');bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
+        document.getElementById('openIt').removeEventListener('click', onOpenItClick, false);
+        if(actionRecorder.changed === '0' || ( cubeMeshes.length < 1 && ( !box || (box && !box.id )))) {
+
+        }
+        else{
+            if(confirm('是否保存当前文件？')) {
+                sidebarParams.save();
+            }
+        }
+
+        if(oi) {
+            var query = new AV.Query(Box);
+            query.get( oi, {
+                success: function(currentBox) {
+                    pen.endInsert();
+                    sidebarParams.clearAll();
+                    actionRecorder = new ActionRecorder();
+                    actionRecorder.updateDom();
+                    box = currentBox;
+                    storageManager.loadCamera(currentBox.get('camera'), true);
+                    storageManager.loadMeshes(currentBox.get('meshes'), defaultLoadType, voxelAnimationManager.loadBoxAnimation, true);
+                    if(currentBox.get('user').id === AV.User.current().id) {
+                        storageManager.save(storageManager.storageKeys.localChanges, '0');
+                        storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+                        storageManager.save(storageManager.storageKeys.boxId, box.id);
+                        storageManager.save(storageManager.storageKeys.updatedAt, box.updatedAt);
+                        storageManager.save(storageManager.storageKeys.camera);
+                        storageManager.save(storageManager.storageKeys.sidebar);
+                        storageManager.save();
+                    }
+                },
+                error: function() {
+                    bubble('打开失败');
+                }
+            });
+        }
+        $('#openModal').modal('hide');
+        
+    }
+
+    function onShareItClick() {        
+        var oi = $('#shareModal input[type=radio]:checked').val();
+        if(oi) {
+            var query = new AV.Query(Box);
+            query.equalTo('objectId', oi);
+            query.select('shared');
+            query.first().then(
+                function(currentBox) {
+                    if(!currentBox.get('shared')){
+                        var acl = new AV.ACL(AV.User.current());
+                        acl.setPublicReadAccess(true);
+                        currentBox.setACL(acl);
+                        currentBox.set('shared', true);
+                        currentBox.save().then(
+                            function(){                                
+                                bubble('分享成功，可通过显示的链接打开分享内容');
+                            },
+                            function(){
+                                bubble('分享失败');
+                            }
+                        );
+                    }
+                    $('#shareLink').val('http://gonster.github.io/helloThreeJS/voxel-paint#'+oi);
+                    bubble('分享成功，可通过显示的链接打开分享内容');
+                }
+            );
+        }
+    }
+
+    function onSetItPrivateClick() {        
+        var oi = $('#shareModal input[type=radio]:checked').val();
+        if(oi) {
+            var query = new AV.Query(Box);
+            query.equalTo('objectId', oi);
+            query.select('shared');
+            query.first().then(
+                function(currentBox) {
+                    if(currentBox.get('shared')){
+                        var acl = new AV.ACL(AV.User.current());
+                        currentBox.setACL(acl);
+                        currentBox.set('shared', false);
+                        currentBox.save().then(
+                            function(){                                
+                                bubble('取消分享成功');
+                            },
+                            function(){
+                                bubble('取消分享失败');
+                            }
+                        );
+                    }
+                }
+            );
+        }
+    }
+
+    function onDeleteItClick() {
+        var className ;
+        var radioGroupSubContainer = $('#openModal input[type=radio]:checked').parent().parent();
+        if(radioGroupSubContainer[0].id === 'myBox') {
+            className = 'Box';
+        }
+        else {
+            className = 'Keep';
+        }
+        var oi = $('#openModal input[type=radio]:checked').val();
+        if(oi && confirm('确定要删除吗？')) {
+            var deletingObject = AV.Object.createWithoutData(className, oi);
+            deletingObject.destroy().then(
+                function(currentObject) {
+                    if( className == 'Box' && box.id == oi ) {
+                        storageManager.save(storageManager.storageKeys.localChanges, '1');
+                        storageManager.save(storageManager.storageKeys.boxName, box.get('name'));
+                        storageManager.save(storageManager.storageKeys.boxId, '');
+                        storageManager.save(storageManager.storageKeys.updatedAt, '');
+                        var theBox = new Box();
+                        theBox.set('meshes', Box.get('meshes'));
+                        theBox.set('camera', Box.get('camera'));
+                        box = theBox;
+                    }
+                    bubble('已删除');
+                },
+                function(error) {
+                    bubble('删除失败');
+                }
+            );
+        }
+        $('#openModal').modal('hide');
+    }
+
+
+    function onInsertItClick() {
+        document.getElementById('openIt').removeEventListener('click', onInsertItClick, false);
+
+        var oi = $('#openModal input[type=radio]:checked').val();
+        if(oi === '-1') { $('#openModal').modal('hide');bubble('收藏的文件无法打开，可能被作者删除或隐藏，可以使用删除功能删除此收藏或联系作者');return;}
+        if(oi) {
+            var query = new AV.Query(Box);
+            query.get( oi, {
+                success: function(currentBox) {
+                    insertBox = currentBox;
+                    pen.isInsertingFlag = true;
+                    pen.insertMeshes = storageManager.dataStringToMeshes(insertBox.get('meshes'));
+                    if(pen.insertMeshes && pen.insertMeshes.length > 0) {
+                        pen.addInsertHelperToScene(pen.insertMeshes);
+                        bubble('shift切换插入使用的材质，ESC或再次点击插入结束；x、c旋转，f、g镜像');
+                    }
+                    else{
+                        pen.endInsert();
+                        bubble('载入文件为空，已取消插入');
+                    }
+                },
+                error: function() {
+                    bubble('载入失败，无法插入');
+                }
+            });
+        }
+        $('#openModal').modal('hide');
+        
+    }
+
+
+    document.getElementById('login').addEventListener('click', onLoginClick, false);
+    document.getElementById('signIn').addEventListener('click', onSignInClick, false);
+
+    document.getElementById('shareIt').addEventListener('click', onShareItClick, false);
+    document.getElementById('setItPrivate').addEventListener('click', onSetItPrivateClick, false);
+
+    storageManager.loadCamera(storageManager.storageKeys.camera);
+    storageManager.loadSidebarSelectedButtons(storageManager.storageKeys.sidebar);
+
+    function loginTrigger(flag){
+        if(flag) {            
+            $('#loginOpener').hide();
+            $('#logout').show();
+            $('#signInOpener').hide();            
+            $('#loginMessage').html('你好 ' + AV.User.current().escape('username'));
+            $('#loginMessage').show();
+            $('#open').removeAttr('disabled');
+            $('#newFile').removeAttr('disabled');
+            $('#share').removeAttr('disabled');
+            $('#delete').removeAttr('disabled');
+            $('#insert').removeAttr('disabled');
+            $('#keep').removeAttr('disabled');
+            $('#currentFileState').show();
+            $('#currentFileName').show();
+        }
+        else{
+            $('#loginOpener').show();
+            $('#logout').hide();
+            $('#signInOpener').show();
+            $('#loginMessage').hide();
+            $('#open').attr('disabled', 'disabled');
+            $('#newFile').attr('disabled', 'disabled');
+            $('#share').attr('disabled', 'disabled');
+            $('#delete').attr('disabled', 'disabled');
+            $('#insert').attr('disabled', 'disabled');
+            $('#keep').attr('disabled', 'disabled');
+            $('#currentFileState').hide();
+            $('#currentFileName').hide();            
+        }
+    }
+
+
+    function updateFileInfo() {
+        var filename = box.escape('name') || '未命名';
+        var filestate = (actionRecorder.changed === '0' ? '未修改' : '修改未保存') + (box.id ? ' - 云端存储' : ' - 本地存储');
+        $('#currentFileName').text('文件名：'+filename);    
+        $('#currentFileState').text('文件状态：'+filestate);
+    }
+
+    function bubble(info) {
+        GoUI.Animation.bubble($('#bubble'), info);
+        updateFileInfo();
+    }
     
-    voxelPaintStorageManager.loadCamera(voxelPaintStorageManager.storageKeys.camera);
+    
+    if (AV.User.current()) {
+        loginTrigger(true);
 
-    voxelPaintStorageManager.loadSidebarSelectedButtons(voxelPaintStorageManager.storageKeys.sidebar);
+        var shareHash = window.location.hash;
+        if(shareHash) {
+            shareHash = shareHash.substring(1);
+            storageManager.loadShared(shareHash, function() {                
+                storageManager.loadRemote();
+                bubble('载入分享文件失败');
+            });
+        }
+        else{
+            storageManager.loadRemote();
+        }
+    } 
+    else {
+        loginTrigger(false);
 
-    voxelPaintStorageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+        var shareHash = window.location.hash;
+        if(shareHash) {
+            shareHash = shareHash.substring(1);
+            storageManager.loadShared(shareHash, function() {
+                storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+                bubble('载入分享文件失败');
+            });
+        }
+        else{
+            storageManager.loadMeshes(undefined, defaultLoadType, voxelAnimationManager.loadBoxAnimation);
+        }
+    }
+    
+    window.addEventListener("hashchange", function(){
+        var shareHash = window.location.hash;
+        if(shareHash) {
+            shareHash = shareHash.substring(1);
+            storageManager.loadShared(shareHash, function(){
+                bubble('载入分享文件失败');
+            });
+        }
+    }, false);
 
-})( window, document, Base, THREE, Detector );
+    //keyboard event toggles along with modal state changes
+    function onModalShow() {
+        document.removeEventListener( 'keydown', onDocumentKeyDown, false );
+        document.removeEventListener( 'keyup', onDocumentKeyUp, false );
+        base.controls.removeKeyEventListener();
+    }
+
+    function onModalHide() {
+        document.addEventListener( 'keydown', onDocumentKeyDown, false );
+        document.addEventListener( 'keyup', onDocumentKeyUp, false );
+        base.controls.addKeyEventListener();
+    }
+
+    $('.modal').on('hidden.bs.modal', onModalHide);
+    $('.modal').on('shown.bs.modal', onModalShow);
+
+})( window, document, Base, THREE, Detector);
